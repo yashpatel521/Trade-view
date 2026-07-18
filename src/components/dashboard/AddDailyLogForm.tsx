@@ -6,6 +6,15 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 
+// Get today's date as YYYY-MM-DD in local timezone
+const getTodayLocal = () => {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
 export const AddDailyLogForm: React.FC = () => {
   const [state, formAction, isPending] = useActionState(addDailyLogAction, {} as any);
 
@@ -17,15 +26,36 @@ export const AddDailyLogForm: React.FC = () => {
       </div>
 
       <form action={formAction} className="flex flex-col gap-4">
-        <Input label="Date" name="date" type="date" required />
-        <Input label="Profit / Loss ($)" name="profitLoss" type="number" placeholder="0.00" required step="0.01" />
-        <Input label="Note (optional)" name="note" placeholder="Quick summary..." />
+        <Input
+          label="Date"
+          name="date"
+          type="date"
+          required
+          defaultValue={getTodayLocal()}
+        />
+        <Input
+          label="Profit / Loss ($)"
+          name="profitLoss"
+          type="number"
+          placeholder="0.00"
+          required
+          step="0.01"
+        />
+        <Input
+          label="Note (optional)"
+          name="note"
+          placeholder="Quick summary..."
+        />
 
         {state?.error && (
-          <p className="text-xs text-red-400 font-medium bg-red-500/5 border border-red-500/10 rounded-lg px-3 py-2">{state.error}</p>
+          <p className="text-xs text-red-400 font-medium bg-red-500/5 border border-red-500/10 rounded-lg px-3 py-2">
+            {state.error}
+          </p>
         )}
         {state?.success && (
-          <p className="text-xs text-emerald-400 font-medium bg-emerald-500/5 border border-emerald-500/10 rounded-lg px-3 py-2">Entry saved.</p>
+          <p className="text-xs text-emerald-400 font-medium bg-emerald-500/5 border border-emerald-500/10 rounded-lg px-3 py-2">
+            Entry saved.
+          </p>
         )}
 
         <Button type="submit" isLoading={isPending}>

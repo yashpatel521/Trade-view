@@ -36,6 +36,7 @@ export const trades = sqliteTable('trades', {
   type: text('type', { enum: ['BUY', 'SELL'] }).notNull(),
   shares: real('shares').notNull(),
   price: real('price').notNull(),
+  currency: text('currency', { enum: ['USD', 'CAD'] }).default('USD').notNull(),
   date: text('date').notNull(), // Format: YYYY-MM-DD
   createdAt: integer('created_at', { mode: 'timestamp' })
     .default(sql`(strftime('%s', 'now') * 1000)`)

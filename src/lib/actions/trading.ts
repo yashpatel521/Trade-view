@@ -100,6 +100,7 @@ export async function addTradeAction(prevState: any, formData: FormData) {
     const shares = parseFloat(formData.get('shares') as string);
     const price = parseFloat(formData.get('price') as string);
     const date = formData.get('date') as string;
+    const currency = (formData.get('currency') as string) === 'CAD' ? 'CAD' : 'USD';
 
     if (!ticker || !type || isNaN(shares) || shares <= 0 || isNaN(price) || price <= 0 || !date) {
       return { error: 'Invalid input. Make sure values are positive numbers.' };
@@ -144,7 +145,6 @@ export async function addTradeAction(prevState: any, formData: FormData) {
       if (newShares === 0) {
         await db.delete(holdings).where(eq(holdings.id, existingHolding.id));
       } else {
-        // Selling shares does not change the average purchase price of remaining shares
         await db.update(holdings)
           .set({
             shares: newShares,
@@ -161,6 +161,7 @@ export async function addTradeAction(prevState: any, formData: FormData) {
       type,
       shares,
       price,
+      currency,
       date,
     });
 
