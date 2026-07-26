@@ -17,11 +17,10 @@ This guide provides instructions, build/test commands, and architectural guideli
 ## 🏗️ Architecture Overview
 
 ### 1. Multi-Database Layer (`src/db/`)
-- **Driver Factory**: Dynamic database factory (`src/db/index.ts`) supports **SQLite** (LibSQL), **PostgreSQL**, and **MongoDB** configured via `DATABASE_DRIVER` (`sqlite` | `postgres` | `mongodb`) and `DATABASE_URL` in `.env`.
+- **Driver Factory**: Dynamic database factory (`src/db/index.ts`) supports **SQLite** (LibSQL) and **PostgreSQL** configured via `DATABASE_DRIVER` (`sqlite` | `postgres`) and `DATABASE_URL` in `.env`.
 - **Schemas**:
   - `src/db/schema.ts` (SQLite table definitions)
   - `src/db/schema.postgres.ts` (PostgreSQL table definitions)
-  - `src/db/mongo.adapter.ts` (MongoDB adapter delivering Drizzle-compatible query methods)
 - **Rule**: Always import `db` from `@/db` in server actions and API routes. Never query driver-specific clients directly inside feature components.
 
 ---

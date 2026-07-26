@@ -7,11 +7,10 @@ This version has breaking changes — APIs, conventions, and file structure may 
 # Trade-View Repository Guidelines & Rules
 
 ## 1. Multi-Database Architecture (`src/db/`)
-- **Driver Factory**: The application uses a dynamic database factory (`src/db/index.ts`) supporting **SQLite** (LibSQL), **PostgreSQL**, and **MongoDB** configured via `DATABASE_DRIVER` (`sqlite` | `postgres` | `mongodb`) and `DATABASE_URL` in `.env`.
+- **Driver Factory**: The application uses a dynamic database factory (`src/db/index.ts`) supporting **SQLite** (LibSQL) and **PostgreSQL** configured via `DATABASE_DRIVER` (`sqlite` | `postgres`) and `DATABASE_URL` in `.env`.
 - **Schema Modifications**:
   - SQLite schema is defined in `src/db/schema.ts`.
   - PostgreSQL schema is defined in `src/db/schema.postgres.ts`.
-  - MongoDB queries are handled by `src/db/mongo.adapter.ts`.
 - **Database Import Rule**: Always import `db` from `@/db` in server actions and API routes. Never query driver-specific clients directly inside feature components.
 
 ---
