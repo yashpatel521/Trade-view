@@ -22,16 +22,30 @@ export async function getMongoDb(url: string): Promise<Db> {
   return mongoDbInstance;
 }
 
+export function cleanBsonObject(obj: any): any {
+  if (obj === null || obj === undefined) return obj;
+  if (typeof obj !== 'object') return obj;
+
+  try {
+    return JSON.parse(JSON.stringify(obj));
+  } catch {
+    const clean: any = {};
+    for (const key of Object.keys(obj)) {
+      const val = obj[key];
+      if (val === undefined || typeof val === 'function') continue;
+      if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') {
+        clean[key] = val;
+      }
+    }
+    return clean;
+  }
+}
+
 export function parseWhereClause(where: any): any {
   if (!where) return {};
 
-  // 1. Plain object check
-  if (typeof where === 'object' && !where.left && !where.queryChunks && !where.config && !where.conditions) {
-    return where;
-  }
-
-  // 2. Drizzle BinaryOperator: eq(col, val) or ne(col, val)
-  if (where.left && where.right !== undefined) {
+  // 1. Drizzle BinaryOperator: eq(col, val) or ne(col, val)
+  if (typeof where === 'object' && where.left && where.right !== undefined) {
     let key = where.left.name || where.left.key || 'id';
     if (key === 'user_id') key = 'userId';
     if (key === 'password_hash') key = 'passwordHash';
@@ -41,20 +55,20 @@ export function parseWhereClause(where: any): any {
     if (key === 'updated_at') key = 'updatedAt';
     if (key === 'profit_loss') key = 'profitLoss';
 
-    const val = where.right;
+    const val = cleanBsonObject(where.right);
     if (where.operator === '!=' || where.operator === '<>') {
       return { [key]: { $ne: val } };
     }
     return { [key]: val };
   }
 
-  // 3. Drizzle AND / OR clauses
+  // 2. Drizzle AND / OR clauses
   if (Array.isArray(where.conditions)) {
     const filters = where.conditions.map((c: any) => parseWhereClause(c));
     return { $and: filters };
   }
 
-  // 4. Fallback: inspect queryChunks
+  // 3. Fallback: inspect queryChunks
   if (Array.isArray(where.queryChunks)) {
     const filter: any = {};
     for (const chunk of where.queryChunks) {
@@ -64,36 +78,18 @@ export function parseWhereClause(where: any): any {
         if (key === 'password_hash') key = 'passwordHash';
         if (key === 'cash_balance') key = 'cashBalance';
         if (key === 'is_public') key = 'isPublic';
-        filter[key] = chunk.right;
+        filter[key] = cleanBsonObject(chunk.right);
       }
     }
     return filter;
   }
 
-  return {};
-}
-
-export function sanitizeDoc(obj: any): any {
-  if (!obj || typeof obj !== 'object') return obj;
-  const clean: any = {};
-  for (const [key, value] of Object.entries(obj)) {
-    if (value === undefined) continue;
-    if (typeof value === 'function') continue;
-    if (typeof value === 'object' && value !== null) {
-      if (value instanceof Date) {
-        clean[key] = value;
-      } else if (Array.isArray(value)) {
-        clean[key] = value.map(sanitizeDoc);
-      } else if (value.constructor?.name === 'Object') {
-        clean[key] = sanitizeDoc(value);
-      } else {
-        clean[key] = String(value);
-      }
-    } else {
-      clean[key] = value;
-    }
+  // 4. Plain object
+  if (typeof where === 'object') {
+    return cleanBsonObject(where);
   }
-  return clean;
+
+  return {};
 }
 
 function getCollectionName(table: any): string {
@@ -142,7 +138,7 @@ export function createMongoDbAdapter(url: string) {
           const col = db.collection(colName);
           const valArray = Array.isArray(vals) ? vals : [vals];
           const docs = valArray.map((v, i) => {
-            const cleanV = sanitizeDoc(v);
+            const cleanV = cleanBsonObject(v);
             return {
               id: cleanV.id || Date.now() + i,
               createdAt: new Date(),
@@ -164,7 +160,7 @@ export function createMongoDbAdapter(url: string) {
               const db = await getDb();
               const col = db.collection(colName);
               const filter = parseWhereClause(whereClause);
-              const cleanVals = sanitizeDoc(vals);
+              const cleanVals = cleanBsonObject(vals);
               await col.updateMany(filter, { $set: cleanVals });
               return { success: true };
             }
