@@ -1,6 +1,6 @@
 # Trade View - Premium Next.js Trading Dashboard & Stock Analysis Platform
 
-A state-of-the-art SaaS portfolio tracker, interactive stock analysis workspace, and community trading platform built with Next.js 15, Zustand, Drizzle ORM, SQLite (via LibSQL), Tailwind CSS, and Recharts.
+A state-of-the-art SaaS portfolio tracker, interactive stock analysis workspace, and community trading platform built with Next.js 15, Zustand, Drizzle ORM, multi-database drivers (SQLite, PostgreSQL, MongoDB), Tailwind CSS, and Recharts.
 
 Designed with a premium Wealthsimple-inspired dark gray aesthetic (`#0a0a0a`), this platform allows traders to track stock holdings with multi-tier real-time API feeds (Yahoo Finance v8 API, Finnhub, and Google Finance TSX scraper), manage cash balances, view day-by-day P&L analytics, inspect detailed stock charts with intraday 1D/1W ranges, and explore public community portfolios.
 
@@ -9,6 +9,7 @@ Designed with a premium Wealthsimple-inspired dark gray aesthetic (`#0a0a0a`), t
 ## ✨ Key Features
 
 - **🎨 Wealthsimple-Inspired Dark Gray UI**: Minimalist, high-end dark design system built with custom neutral gray palettes (`#0a0a0a`, `#141414`, `#222`), sleek card containers, smooth micro-animations, and glowing role badges.
+- **🗄️ Multi-Database Architecture**: Supports **SQLite** (LibSQL / Turso), **PostgreSQL** (Neon / Supabase / Railway), and **MongoDB** (Mongo Atlas) dynamically via `DATABASE_DRIVER` and `DATABASE_URL` in `.env`.
 - **📈 Dedicated Stock Portfolio & Dynamic Stock Detail Pages**:
   - **/dashboard/stocks**: Dedicated stock holdings view featuring top 4 **Stock Allocation Weight** cards (#1 Allocation, #2 Allocation, #3 Allocation, Others), search bar, and 1-click Sell buttons.
   - **/dashboard/stocks/[ticker]**: In-depth stock detail workspace featuring:
@@ -39,8 +40,11 @@ Designed with a premium Wealthsimple-inspired dark gray aesthetic (`#0a0a0a`), t
 
 - **Framework**: [Next.js 15](https://nextjs.org/) (App Router & React 19)
 - **State Management**: [Zustand](https://zustand-demo.pmnd.rs/) (Client-side global currency view state)
-- **Database ORM**: [Drizzle ORM](https://orm.drizzle.team/)
-- **Database**: SQLite (via `@libsql/client` - supports local file database for dev and serverless Turso Database for production)
+- **Database ORM & Drivers**:
+  - [Drizzle ORM](https://orm.drizzle.team/)
+  - **SQLite** (`@libsql/client`)
+  - **PostgreSQL** (`pg`)
+  - **MongoDB** (`mongodb` native driver & adapter)
 - **Market Data**: Finnhub API & Yahoo Finance v8 Real-Time Chart API
 - **Styling**: Tailwind CSS & Lucide Icons
 - **Charts**: Recharts (Intraday & historical stock trend area graphs & Asset Allocation pie charts)
@@ -65,8 +69,10 @@ src/
 │   ├── layout/               # Client Sidebar & Header with Available Cash badge & currency toggle
 │   └── dashboard/            # StockPriceChart, MarketDetailsCard, SellModal, DashboardCharts
 ├── db/                       # Database layer
-│   ├── index.ts              # LibSQL/Drizzle client & auto-seeder
-│   └── schema.ts             # Users, Holdings, Trades, and Daily Logs tables
+│   ├── index.ts              # LibSQL/Postgres/Mongo client & auto-seeder
+│   ├── schema.ts             # SQLite tables
+│   ├── schema.postgres.ts    # PostgreSQL tables
+│   └── mongo.adapter.ts      # MongoDB query adapter
 ├── lib/                      # Business logic & Server Actions
 │   ├── store.ts              # Zustand store for currency state (CAD/USD)
 │   ├── auth.ts               # bcryptjs password hashing
@@ -85,15 +91,19 @@ npm install
 ```
 
 ### 2. Configure Environment Variables
-Create a `.env` file in the root directory:
+Create a `.env` file in the root directory (see `.env.example`):
 ```env
+# Database Driver Selection: 'sqlite' | 'postgres' | 'mongodb'
+DATABASE_DRIVER=sqlite
+DATABASE_URL=file:local.db
+
+# API Keys & Auth Secrets
 FINNHUB_API_KEY=your_finnhub_api_key
 JWT_SECRET=your_super_secret_jwt_key
-DATABASE_URL=file:local.db
 ```
 
 ### 3. Initialize & Sync Database
-Sync Drizzle schemas with your local SQLite database:
+For SQLite:
 ```bash
 npx drizzle-kit push --force
 ```
