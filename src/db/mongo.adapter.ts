@@ -73,6 +73,29 @@ export function parseWhereClause(where: any): any {
   return {};
 }
 
+export function sanitizeDoc(obj: any): any {
+  if (!obj || typeof obj !== 'object') return obj;
+  const clean: any = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value === undefined) continue;
+    if (typeof value === 'function') continue;
+    if (typeof value === 'object' && value !== null) {
+      if (value instanceof Date) {
+        clean[key] = value;
+      } else if (Array.isArray(value)) {
+        clean[key] = value.map(sanitizeDoc);
+      } else if (value.constructor?.name === 'Object') {
+        clean[key] = sanitizeDoc(value);
+      } else {
+        clean[key] = String(value);
+      }
+    } else {
+      clean[key] = value;
+    }
+  }
+  return clean;
+}
+
 function getCollectionName(table: any): string {
   if (typeof table === 'string') return table;
   const name = table?.tableName || table?.name || table?._?.name || 'users';
@@ -118,12 +141,15 @@ export function createMongoDbAdapter(url: string) {
           const db = await getDb();
           const col = db.collection(colName);
           const valArray = Array.isArray(vals) ? vals : [vals];
-          const docs = valArray.map((v, i) => ({
-            id: v.id || Date.now() + i,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            ...v,
-          }));
+          const docs = valArray.map((v, i) => {
+            const cleanV = sanitizeDoc(v);
+            return {
+              id: cleanV.id || Date.now() + i,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              ...cleanV,
+            };
+          });
           await col.insertMany(docs);
           return docs;
         }
@@ -138,7 +164,8 @@ export function createMongoDbAdapter(url: string) {
               const db = await getDb();
               const col = db.collection(colName);
               const filter = parseWhereClause(whereClause);
-              await col.updateMany(filter, { $set: vals });
+              const cleanVals = sanitizeDoc(vals);
+              await col.updateMany(filter, { $set: cleanVals });
               return { success: true };
             }
           };
