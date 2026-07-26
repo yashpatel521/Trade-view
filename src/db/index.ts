@@ -37,7 +37,7 @@ export type DbType = typeof db;
 export * from './schema';
 
 // Seeding logic for default admin user
-async function seedAdminUser() {
+export async function seedAdminUser() {
   try {
     const adminEmail = 'admin@trading.com';
     const existingAdmin = await db.query.users.findFirst({
@@ -45,18 +45,22 @@ async function seedAdminUser() {
     });
 
     if (!existingAdmin) {
-      console.log('Seeding default admin user...');
+      console.log('[Auto-Seeder] Seeding default admin user into database...');
       const passwordHash = bcrypt.hashSync('admin', 10);
       await db.insert(schema.users).values({
         name: 'Default Admin',
         email: adminEmail,
         passwordHash,
         role: 'admin',
+        cashBalance: 10000,
+        isPublic: true,
       });
-      console.log('Default admin user successfully seeded!');
+      console.log('[Auto-Seeder] Default admin user successfully seeded!');
+    } else {
+      console.log('[Auto-Seeder] Default admin user already exists.');
     }
   } catch (error) {
-    console.error('Error seeding admin user:', error);
+    console.error('[Auto-Seeder] Error seeding admin user:', error);
   }
 }
 
