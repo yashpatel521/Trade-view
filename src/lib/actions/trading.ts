@@ -400,7 +400,7 @@ export async function getDashboardDataAction(viewCurrency: 'CAD' | 'USD' = 'CAD'
     let totalCostConverted = 0;
     let currentValueConverted = 0;
 
-    const enrichedHoldings: Holding[] = await Promise.all(userHoldings.map(async (h) => {
+    const enrichedHoldings: Holding[] = await Promise.all(userHoldings.map(async (h: any) => {
       const tickerUpper = h.ticker.toUpperCase();
       const liveData = await fetchStockPrice(tickerUpper);
       const nativeCurrency = (liveData.currency as 'USD' | 'CAD') || (tickerUpper.endsWith('.TO') || tickerUpper.endsWith('.V') || tickerUpper.endsWith('.CN') ? 'CAD' : 'USD');
@@ -455,13 +455,13 @@ export async function getDashboardDataAction(viewCurrency: 'CAD' | 'USD' = 'CAD'
 
     // Daily Logs and Win Rate computations
     const totalDaysCount = userLogs.length;
-    const profitableDaysCount = userLogs.filter((l) => l.profitLoss > 0).length;
+    const profitableDaysCount = userLogs.filter((l: any) => l.profitLoss > 0).length;
     const winRate = totalDaysCount > 0 ? (profitableDaysCount / totalDaysCount) * 100 : 0;
 
     // Chronological logs for cumulative performance graph
     const sortedLogs = [...userLogs].sort((a, b) => a.date.localeCompare(b.date));
     let cumulativeProfit = 0;
-    const chartData: ChartDataPoint[] = sortedLogs.map((log) => {
+    const chartData: ChartDataPoint[] = sortedLogs.map((log: any) => {
       const profitLossConverted = log.profitLoss * conversionFactor;
       cumulativeProfit += profitLossConverted;
       return {
@@ -472,7 +472,7 @@ export async function getDashboardDataAction(viewCurrency: 'CAD' | 'USD' = 'CAD'
     });
 
     // Asset Allocation data
-    const allocationData: AllocationData[] = enrichedHoldings.map((h) => {
+    const allocationData: AllocationData[] = enrichedHoldings.map((h: any) => {
       const percentage = currentValueConverted > 0 ? ((h.currentValue || 0) / currentValueConverted) * 100 : 0;
       return {
         name: h.ticker,
@@ -499,14 +499,14 @@ export async function getDashboardDataAction(viewCurrency: 'CAD' | 'USD' = 'CAD'
     return {
       stats,
       holdings: enrichedHoldings,
-      dailyLogs: userLogs.map(l => ({
+      dailyLogs: userLogs.map((l: any) => ({
         ...l,
         profitLoss: l.profitLoss * conversionFactor,
         createdAt: new Date(l.createdAt),
       })),
       chartData,
       allocationData,
-      trades: userTrades.map(t => ({
+      trades: userTrades.map((t: any) => ({
         ...t,
         price: t.price * conversionFactor,
         type: t.type as 'BUY' | 'SELL',
@@ -576,7 +576,7 @@ export async function getAllPortfoliosAction(): Promise<PublicPortfolio[]> {
     const fxRate = await fetchFxRate();
 
     const portfolios = await Promise.all(
-      allUsers.map(async (u) => {
+      allUsers.map(async (u: any) => {
         const userHoldings = await db.query.holdings.findMany({
           where: eq(holdings.userId, u.id),
         });
@@ -658,7 +658,7 @@ export async function getPublicPortfolioDetailsAction(userId: number): Promise<P
     let currentValue = 0;
 
     const enrichedHoldings: Holding[] = await Promise.all(
-      userHoldings.map(async (h) => {
+      userHoldings.map(async (h: any) => {
         const tickerUpper = h.ticker.toUpperCase();
         const liveData = await fetchStockPrice(tickerUpper);
 
