@@ -22,6 +22,12 @@ export interface Holding {
   totalCost?: number;
   unrealizedPL?: number;
   unrealizedPLPercent?: number;
+  nativeCurrency?: 'USD' | 'CAD';
+  nativeAveragePrice?: number;
+  nativeCurrentPrice?: number;
+  nativeTotalCost?: number;
+  nativeCurrentValue?: number;
+  nativeUnrealizedPL?: number;
 }
 
 export interface DailyLog {

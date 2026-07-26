@@ -3,12 +3,13 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { TrendingUp, LayoutDashboard, PlusCircle, Settings, Users } from 'lucide-react';
+import { TrendingUp, LayoutDashboard, Layers, PlusCircle, Settings, Users } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
   const pathname = usePathname();
 
   const isDashboardActive = pathname === '/dashboard';
+  const isStocksActive = pathname === '/dashboard/stocks';
   const isAddActive = pathname === '/dashboard/add';
   const isPortfoliosActive = pathname === '/dashboard/portfolios';
   const isSettingsActive = pathname === '/dashboard/settings';
@@ -35,6 +36,18 @@ export const Sidebar: React.FC = () => {
         >
           <LayoutDashboard className={`h-4 w-4 ${isDashboardActive ? 'text-white' : 'text-neutral-500'}`} />
           Dashboard
+        </Link>
+
+        <Link
+          href="/dashboard/stocks"
+          className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+            isStocksActive 
+              ? 'text-white bg-neutral-800' 
+              : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50'
+          }`}
+        >
+          <Layers className={`h-4 w-4 ${isStocksActive ? 'text-white' : 'text-neutral-500'}`} />
+          Stocks
         </Link>
 
         <Link

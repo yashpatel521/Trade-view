@@ -1,12 +1,14 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import Link from 'next/link';
 import DashboardCharts from '@/components/dashboard/DashboardCharts';
 import { Card } from '@/components/ui/Card';
-import { ArrowUpRight, ArrowDownRight, Trash2 } from 'lucide-react';
-import { DashboardData } from '@/types/trading';
+import { ArrowUpRight, ArrowDownRight, Trash2, TrendingDown } from 'lucide-react';
+import { DashboardData, Holding } from '@/types/trading';
 import { useCurrencyStore } from '@/lib/store';
 import { deleteDailyLogAction } from '@/lib/actions/trading';
+import SellModal from '@/components/dashboard/SellModal';
 
 interface DashboardClientProps {
   data: DashboardData;
@@ -14,6 +16,7 @@ interface DashboardClientProps {
 
 export default function DashboardClient({ data }: DashboardClientProps) {
   const { currency } = useCurrencyStore();
+  const [sellingHolding, setSellingHolding] = useState<Holding | null>(null);
   const { stats, holdings, dailyLogs, chartData, allocationData, trades } = data;
 
   const isUSD = currency === 'USD';
@@ -117,7 +120,8 @@ export default function DashboardClient({ data }: DashboardClientProps) {
                   <th className="py-3 px-2">Price</th>
                   <th className="py-3 px-2">Cost Basis</th>
                   <th className="py-3 px-2">Market Value</th>
-                  <th className="py-3 px-2 text-right">Return</th>
+                  <th className="py-3 px-2">Return</th>
+                  <th className="py-3 px-2 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#1a1a1a]">
@@ -126,21 +130,37 @@ export default function DashboardClient({ data }: DashboardClientProps) {
                     const pl = h.unrealizedPL || 0;
                     return (
                       <tr key={h.id} className="hover:bg-[#1a1a1a] transition-colors text-neutral-300">
-                        <td className="py-3.5 px-2 font-semibold text-white">{h.ticker}</td>
+                        <td className="py-3.5 px-2">
+                          <Link
+                            href={`/dashboard/stocks/${encodeURIComponent(h.ticker)}`}
+                            className="font-semibold text-white hover:text-neutral-300 underline-offset-4 hover:underline transition-colors"
+                          >
+                            {h.ticker}
+                          </Link>
+                        </td>
                         <td className="py-3.5 px-2">{h.shares.toLocaleString()}</td>
                         <td className="py-3.5 px-2">{fmt(h.averagePrice)}</td>
                         <td className="py-3.5 px-2">{fmt(h.currentPrice || 0)}</td>
                         <td className="py-3.5 px-2">{fmt(h.totalCost || 0)}</td>
                         <td className="py-3.5 px-2">{fmt(h.currentValue || 0)}</td>
-                        <td className={`py-3.5 px-2 text-right font-medium ${pl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        <td className={`py-3.5 px-2 font-medium ${pl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                           {fmt(pl)} <span className="text-neutral-500">({pct(h.unrealizedPLPercent || 0)})</span>
+                        </td>
+                        <td className="py-3.5 px-2 text-right">
+                          <button
+                            onClick={() => setSellingHolding(h)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-md transition-colors cursor-pointer"
+                          >
+                            <TrendingDown className="h-3 w-3" />
+                            Sell
+                          </button>
                         </td>
                       </tr>
                     );
                   })
                 ) : (
                   <tr>
-                    <td colSpan={7} className="py-10 text-center text-neutral-500 text-xs">
+                    <td colSpan={8} className="py-10 text-center text-neutral-500 text-xs">
                       No holdings yet. Add a trade below.
                     </td>
                   </tr>
@@ -150,6 +170,12 @@ export default function DashboardClient({ data }: DashboardClientProps) {
           </div>
         </div>
       </Card>
+
+      {/* Quick Sell Modal */}
+      <SellModal
+        holding={sellingHolding}
+        onClose={() => setSellingHolding(null)}
+      />
 
       {/* Journal & Transactions */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">

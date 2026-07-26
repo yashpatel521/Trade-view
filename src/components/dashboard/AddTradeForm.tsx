@@ -18,6 +18,9 @@ const getTodayLocal = () => {
 export const AddTradeForm: React.FC = () => {
   const [state, formAction, isPending] = useActionState(addTradeAction, {} as any);
   const [currency, setCurrency] = useState<'USD' | 'CAD'>('USD');
+  const [tradeType, setTradeType] = useState<'BUY' | 'SELL'>('BUY');
+  const [shares, setShares] = useState<string>('');
+  const [price, setPrice] = useState<string>('');
 
   // Auto-detect from ticker (TSX stocks ending in .TO are CAD, otherwise USD)
   const handleTickerBlur = (e: React.FocusEvent<HTMLInputElement>) => {
@@ -29,11 +32,15 @@ export const AddTradeForm: React.FC = () => {
     }
   };
 
+  const calculatedTotal = (parseFloat(shares) || 0) * (parseFloat(price) || 0);
+
   return (
     <Card>
       <div className="mb-5">
         <h3 className="text-sm font-semibold text-white">Add Trade</h3>
-        <p className="text-xs text-neutral-500 mt-0.5">Record a buy or sell</p>
+        <p className="text-xs text-neutral-500 mt-0.5">
+          Buying deducts from your cash balance; selling credits your cash balance.
+        </p>
       </div>
 
       <form action={formAction} className="flex flex-col gap-4">
@@ -50,7 +57,9 @@ export const AddTradeForm: React.FC = () => {
             <label className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Type</label>
             <select
               name="type"
-              className="w-full px-3.5 py-2.5 bg-neutral-900 border border-neutral-800 rounded-lg text-sm text-neutral-100 focus:outline-none focus:border-neutral-600 focus:ring-1 focus:ring-neutral-700 transition-colors duration-150 cursor-pointer"
+              value={tradeType}
+              onChange={(e) => setTradeType(e.target.value as 'BUY' | 'SELL')}
+              className="w-full px-3.5 py-2.5 bg-neutral-900 border border-neutral-800 rounded-lg text-sm text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-700 transition-colors duration-150 cursor-pointer"
             >
               <option value="BUY">Buy</option>
               <option value="SELL">Sell</option>
@@ -60,8 +69,28 @@ export const AddTradeForm: React.FC = () => {
 
         {/* Shares + Price */}
         <div className="grid grid-cols-2 gap-3">
-          <Input label="Shares" name="shares" type="number" placeholder="0" required min="1" step="1" />
-          <Input label="Price" name="price" type="number" placeholder="0.00" required min="0" step="0.01" />
+          <Input
+            label="Shares"
+            name="shares"
+            type="number"
+            placeholder="0"
+            required
+            min="1"
+            step="any"
+            value={shares}
+            onChange={(e) => setShares(e.target.value)}
+          />
+          <Input
+            label="Price"
+            name="price"
+            type="number"
+            placeholder="0.00"
+            required
+            min="0"
+            step="any"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+          />
         </div>
 
         {/* Currency + Date */}
@@ -106,6 +135,18 @@ export const AddTradeForm: React.FC = () => {
           />
         </div>
 
+        {/* Estimated Order Summary */}
+        {calculatedTotal > 0 && (
+          <div className="p-3 bg-neutral-900 border border-neutral-800 rounded-lg flex justify-between items-center text-xs">
+            <span className="text-neutral-400">
+              Estimated {tradeType === 'BUY' ? 'Cost' : 'Proceeds'}:
+            </span>
+            <span className="font-semibold text-white">
+              ${calculatedTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}
+            </span>
+          </div>
+        )}
+
         {state?.error && (
           <p className="text-xs text-red-400 font-medium bg-red-500/5 border border-red-500/10 rounded-lg px-3 py-2">
             {state.error}
@@ -113,7 +154,7 @@ export const AddTradeForm: React.FC = () => {
         )}
         {state?.success && (
           <p className="text-xs text-emerald-400 font-medium bg-emerald-500/5 border border-emerald-500/10 rounded-lg px-3 py-2">
-            Trade recorded.
+            Trade recorded and cash balance updated.
           </p>
         )}
 

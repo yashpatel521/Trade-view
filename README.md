@@ -1,23 +1,37 @@
-# Trade View - Premium Next.js Trading Dashboard & Community Leaderboard
+# Trade View - Premium Next.js Trading Dashboard & Stock Analysis Platform
 
-A state-of-the-art SaaS-style portfolio tracker and community trading platform built with Next.js 15, Zustand, Drizzle ORM, SQLite (via LibSQL), Tailwind CSS, and Recharts.
+A state-of-the-art SaaS portfolio tracker, interactive stock analysis workspace, and community trading platform built with Next.js 15, Zustand, Drizzle ORM, SQLite (via LibSQL), Tailwind CSS, and Recharts.
 
-Designed with a premium Wealthsimple-inspired dark gray aesthetic (`#0a0a0a`), this platform allows traders to track stock holdings with live scraped Google Finance prices, manage cash balances, analyze asset allocations, view day-by-day profit/loss metrics, and explore public community portfolios.
+Designed with a premium Wealthsimple-inspired dark gray aesthetic (`#0a0a0a`), this platform allows traders to track stock holdings with multi-tier real-time API feeds (Yahoo Finance v8 API, Finnhub, and Google Finance TSX scraper), manage cash balances, view day-by-day P&L analytics, inspect detailed stock charts with intraday 1D/1W ranges, and explore public community portfolios.
 
 ---
 
-## ✨ Features
+## ✨ Key Features
 
 - **🎨 Wealthsimple-Inspired Dark Gray UI**: Minimalist, high-end dark design system built with custom neutral gray palettes (`#0a0a0a`, `#141414`, `#222`), sleek card containers, smooth micro-animations, and glowing role badges.
-- **⚡ Live Google Finance Scraper**: Scrapes real-time stock prices and USD/CAD exchange rates directly from Google Finance with fallback symbol matching across NASDAQ, NYSE, and TSE. Includes a 5-minute in-memory cache for sub-second performance.
-- **💱 Dynamic USD / CAD Currency Switching**: Global client-side state managed via **Zustand**. Switch currencies instantly in the top header without dropping page routes or waiting for server re-renders.
-- **👥 Multi-Profile Quick Login**: Remembers authenticated accounts in `localStorage`. Displays interactive profile cards on the login screen for instant 1-click switching between multiple accounts.
+- **📈 Dedicated Stock Portfolio & Dynamic Stock Detail Pages**:
+  - **/dashboard/stocks**: Dedicated stock holdings view featuring top 4 **Stock Allocation Weight** cards (#1 Allocation, #2 Allocation, #3 Allocation, Others), search bar, and 1-click Sell buttons.
+  - **/dashboard/stocks/[ticker]**: In-depth stock detail workspace featuring:
+    - **75% / 25% Split Layout**: 75% width for the interactive price trend chart and 25% width for the Market Details & Financials panel.
+    - **Interactive Price Chart**: Supports **1D** (5-minute intraday), **1W** (30-minute), **1M**, **3M**, and **1Y** time range selectors.
+    - **Always-Visible High & Low Dots**: Permanent Recharts `<ReferenceDot>` markers indicating the exact peak (`High`) and trough (`Low`) prices for the active range.
+    - **Market Details & Financials Grid**: 2-column grid displaying Open, Close, Bid, Ask, Last sale, High, Low, Volume, Avg volume, 52W High/Low, Exchange, Margin req (30%), Market cap, Shares outstanding, and P/E ratio.
+    - **Trade History Table**: Full log of historical BUY and SELL transactions executed for that specific stock.
+- **⚡ Multi-Tier Live Market Engine**:
+  - Primary real-time quotes and price candle history via **Yahoo Finance v8 Chart API**.
+  - Fallback integration with **Finnhub Stock API**.
+  - Cleaned TSX scraper for Canadian stocks (`RY.TO`, `SHOP.TO`).
+- **💱 Multi-Currency USD & CAD Trading Engine**:
+  - Stored base account cash balance in **CAD**.
+  - Automatically calculates live USD/CAD FX rate for US stock purchases and sales (`AAPL`, `NVDA`, `MSFT`).
+  - Displays native currency badges (`🇺🇸 USD` vs `🇨🇦 CAD`) across holdings and detail pages.
+  - Global client-side currency view switching via **Zustand**.
+- **💳 Available Cash Header Display**: Real-time **Available Cash** balance badge rendered beside the CAD/USD toggle switch in the top header.
+- **📉 Quick 1-Click Sell Modal (`SellModal`)**: Modal popup allowing traders to execute partial or full sell orders directly from holdings tables.
 - **🏆 Community Leaderboard & Portfolio Explorer**:
-  - `/dashboard/portfolios`: Ranked list of traders by total net worth (cash + stock assets), featuring search filters. Automatically excludes the logged-in user from their own list.
-  - `/dashboard/portfolios/[userId]`: Detailed public portfolio page displaying a trader's stock holdings, cost basis, market value, and returns.
-- **🔒 Privacy Settings**: Dedicated toggle under `/dashboard/settings` allowing traders to set their portfolio visibility to Public or Private (`isPublic`).
-- **💰 Available Cash & Funds Manager**: Manage available cash, make deposits, or set absolute balances under `/dashboard/settings`.
-- **🛡️ Role-Based Auth & Auto-Seeding**: Automatic seeder creates a default `ADMIN` account on app startup. Top header displays glowing role badges (`ADMIN` / `USER`).
+  - `/dashboard/portfolios`: Ranked list of traders by total net worth (cash + stock assets), with search filters.
+  - `/dashboard/portfolios/[userId]`: Public portfolio page displaying a trader's stock holdings, cost basis, market value, and returns.
+- **🔒 Privacy Settings & Funds Manager**: Toggle portfolio visibility between Public and Private under `/dashboard/settings`, and manage cash deposits.
 
 ---
 
@@ -27,10 +41,10 @@ Designed with a premium Wealthsimple-inspired dark gray aesthetic (`#0a0a0a`), t
 - **State Management**: [Zustand](https://zustand-demo.pmnd.rs/) (Client-side global currency view state)
 - **Database ORM**: [Drizzle ORM](https://orm.drizzle.team/)
 - **Database**: SQLite (via `@libsql/client` - supports local file database for dev and serverless Turso Database for production)
+- **Market Data**: Finnhub API & Yahoo Finance v8 Real-Time Chart API
 - **Styling**: Tailwind CSS & Lucide Icons
-- **Charts**: Recharts (P&L area trend graphs & Asset Allocation pie charts)
+- **Charts**: Recharts (Intraday & historical stock trend area graphs & Asset Allocation pie charts)
 - **Authentication**: JWT Cookies using `jose` and `bcryptjs`
-- **Scraping Engine**: Custom WIZ-array regex parser for Google Finance HTML data
 
 ---
 
@@ -39,19 +53,17 @@ Designed with a premium Wealthsimple-inspired dark gray aesthetic (`#0a0a0a`), t
 ```
 src/
 ├── app/                      # Next.js App Router pages & layouts
-│   ├── (auth)/               # Route grouping for login & registration
-│   │   ├── login/            # Multi-profile quick login page
-│   │   └── register/         # User registration page
-│   ├── dashboard/            # Dashboard views
-│   │   ├── add/              # Trade & journal log entry forms
-│   │   ├── portfolios/       # Community leaderboard & user portfolio details ([userId])
-│   │   ├── settings/         # Funds management & portfolio privacy toggle
-│   │   └── DashboardClient.tsx# Client-side currency conversion wrapper
-│   └── globals.css           # Neutral dark gray color variables & styles
+├── dashboard/
+│   ├── add/                  # Trade & journal log entry forms
+│   ├── stocks/               # Dedicated stocks holdings page
+│   │   └── [ticker]/         # Dynamic stock detail page (/dashboard/stocks/[ticker])
+│   ├── portfolios/           # Community leaderboard & user portfolio details ([userId])
+│   ├── settings/             # Funds management & portfolio privacy toggle
+│   └── DashboardClient.tsx   # Dashboard main client view
 ├── components/               # UI & Layout components
 │   ├── ui/                   # Base design elements (Button, Input, Card)
-│   ├── layout/               # Client Sidebar & Header with currency toggle
-│   └── dashboard/            # P&L trend charts & asset allocation
+│   ├── layout/               # Client Sidebar & Header with Available Cash badge & currency toggle
+│   └── dashboard/            # StockPriceChart, MarketDetailsCard, SellModal, DashboardCharts
 ├── db/                       # Database layer
 │   ├── index.ts              # LibSQL/Drizzle client & auto-seeder
 │   └── schema.ts             # Users, Holdings, Trades, and Daily Logs tables
@@ -59,23 +71,9 @@ src/
 │   ├── store.ts              # Zustand store for currency state (CAD/USD)
 │   ├── auth.ts               # bcryptjs password hashing
 │   ├── session.ts            # jose JWT cookie management
-│   └── actions/              # Next.js Server Actions (trading, scrapers, funds, privacy)
+│   └── actions/              # Next.js Server Actions (trading, market APIs, candles, funds)
 └── types/                    # TypeScript interfaces & types
 ```
-
----
-
-## 📈 Portfolio Calculations & Logic
-
-1. **Live Google Valuation**:
-   $$\text{Current Value} = \text{Shares} \times \text{Live Scraped Price (converted via Google USD/CAD FX Rate)}$$
-2. **Average Purchase Price**:
-   $$\text{Avg Price} = \frac{\sum (\text{shares} \times \text{purchase price})}{\sum \text{shares}}$$
-3. **Unrealized Return**:
-   $$\text{Unrealized P&L} = \text{Current Market Value} - \text{Total Cost Basis}$$
-4. **Instant Client-Side Currency View**:
-   Values stored in base CAD are dynamically converted in the browser via Zustand:
-   $$\text{Displayed Value (USD)} = \text{Value (CAD)} \times \frac{1}{\text{scraped FX Rate}}$$
 
 ---
 
@@ -89,6 +87,7 @@ npm install
 ### 2. Configure Environment Variables
 Create a `.env` file in the root directory:
 ```env
+FINNHUB_API_KEY=your_finnhub_api_key
 JWT_SECRET=your_super_secret_jwt_key
 DATABASE_URL=file:local.db
 ```

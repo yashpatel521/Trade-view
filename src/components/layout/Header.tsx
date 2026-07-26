@@ -1,17 +1,27 @@
 'use client';
 
 import React from 'react';
-import { Calendar, User, LogOut } from 'lucide-react';
+import { Calendar, User, LogOut, Wallet } from 'lucide-react';
 import { logoutAction } from '@/lib/actions/auth';
 import { SessionPayload } from '@/types/auth';
 import { useCurrencyStore } from '@/lib/store';
 
 interface HeaderProps {
   session: SessionPayload | null;
+  cashBalance?: number;
+  fxRate?: number;
 }
 
-export const Header: React.FC<HeaderProps> = ({ session }) => {
+export const Header: React.FC<HeaderProps> = ({ session, cashBalance = 0, fxRate = 1.40 }) => {
   const { currency, setCurrency } = useCurrencyStore();
+
+  const isUSD = currency === 'USD';
+  const displayBalance = isUSD ? cashBalance / fxRate : cashBalance;
+
+  const formattedBalance = new Intl.NumberFormat(isUSD ? 'en-US' : 'en-CA', {
+    style: 'currency',
+    currency: currency,
+  }).format(displayBalance);
 
   const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'short',
@@ -32,6 +42,15 @@ export const Header: React.FC<HeaderProps> = ({ session }) => {
       </div>
 
       <div className="flex items-center gap-4">
+        {/* Remaining Cash Balance Display */}
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-neutral-900 border border-neutral-800 rounded-lg shadow-xs">
+          <Wallet className="h-3.5 w-3.5 text-emerald-400" />
+          <div className="flex flex-col">
+            <span className="text-[9px] uppercase tracking-wider text-neutral-500 font-semibold leading-none">Available Cash</span>
+            <span className="text-xs font-bold text-white mt-0.5 leading-none">{formattedBalance}</span>
+          </div>
+        </div>
+
         {/* Currency Toggle Switch (Zustand-managed) */}
         <div className="inline-flex rounded-lg p-0.5 bg-neutral-900 border border-neutral-800 text-[10px] select-none">
           <button
