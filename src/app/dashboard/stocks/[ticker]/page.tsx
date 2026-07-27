@@ -1,4 +1,5 @@
 import { getDashboardDataAction } from '@/lib/actions/trading';
+import { getSession } from '@/lib/session';
 import StockDetailClient from './StockDetailClient';
 
 interface StockDetailPageProps {
@@ -8,6 +9,9 @@ interface StockDetailPageProps {
 export default async function StockDetailPage({ params }: StockDetailPageProps) {
   const { ticker } = await params;
   const decodedTicker = decodeURIComponent(ticker).toUpperCase().trim();
+
+  const session = await getSession();
+  const isAdmin = session?.role === 'admin';
 
   const data = await getDashboardDataAction();
 
@@ -35,6 +39,7 @@ export default async function StockDetailPage({ params }: StockDetailPageProps) 
       holding={holding}
       trades={trades}
       fxRate={data.stats.fxRate || 1.40}
+      isAdmin={isAdmin}
     />
   );
 }

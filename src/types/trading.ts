@@ -102,3 +102,70 @@ export interface PublicPortfolioDetails {
   };
   holdings: Holding[];
 }
+
+export interface StockNewsItem {
+  id: string | number;
+  headline: string;
+  summary: string;
+  source: string;
+  url: string;
+  image?: string;
+  datetime: number;
+  timeAgo?: string;
+}
+
+export type SignalType = 'BULLISH' | 'BEARISH' | 'NEUTRAL';
+
+export interface StrategyMetric {
+  label: string;
+  value: string;
+  status: 'positive' | 'negative' | 'neutral';
+  description?: string;
+}
+
+export interface StrategyPrediction {
+  id: string;
+  name: string;
+  description: string;
+  signal: SignalType;
+  confidence: number;
+  targetPrice: number;
+  stopLoss: number;
+  expectedHorizon: string;
+  summary: string;
+  metrics: StrategyMetric[];
+}
+
+export interface WeeklyReportStock {
+  rank: number;
+  stock: string;
+  bias: string;
+  expectedDayHigh: string;
+  expectedDayLow: string;
+  expectedWeekHigh: string;
+  expectedWeekLow: string;
+  waitUntil?: string;
+  confidence: string;
+}
+
+export interface SavedWeeklyReportRecord {
+  id: number;
+  createdAt: string;
+  report: WeeklyReportStock[];
+}
+
+export interface WatchlistItem {
+  id: number;
+  ticker: string;
+  nativeCurrency: 'USD' | 'CAD';
+  nativeCurrentPrice: number;
+  dayChange: number;
+  dayChangePercent: number;
+  addedAt: string;
+}
+
+export interface StockSearchResult {
+  symbol: string;
+  description: string;
+  type: string;
+}

@@ -40,3 +40,31 @@ export const dailyLogs = pgTable('daily_logs', {
   note: text('note'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+export const weeklyReports = pgTable('weekly_reports', {
+  id: serial('id').primaryKey(),
+  reportData: text('report_data').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const stockStrategyPredictions = pgTable('stock_strategy_predictions', {
+  id: serial('id').primaryKey(),
+  ticker: text('ticker').notNull(),
+  predictionData: text('prediction_data').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const watchlist = pgTable('watchlist', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  ticker: text('ticker').notNull(),
+  addedAt: timestamp('added_at').defaultNow().notNull(),
+});
+
+export const stockChartCandles = pgTable('stock_chart_candles', {
+  id: serial('id').primaryKey(),
+  ticker: text('ticker').notNull(),
+  range: text('range').notNull(),
+  candleData: text('candle_data').notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});

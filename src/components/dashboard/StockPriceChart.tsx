@@ -32,6 +32,7 @@ export const StockPriceChart: React.FC<StockPriceChartProps> = ({
   const [dataPoints, setDataPoints] = useState<{ date: string; price: number }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [isWebSocketActive, setIsWebSocketActive] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -50,6 +51,74 @@ export const StockPriceChart: React.FC<StockPriceChartProps> = ({
     loadCandles();
     return () => {
       isSubscribed = false;
+    };
+  }, [ticker, range]);
+
+  // Finnhub Live WebSocket Stream for 1D Intraday chart
+  useEffect(() => {
+    if (range !== '1d') {
+      setIsWebSocketActive(false);
+      return;
+    }
+
+    const cleanTicker = ticker.toUpperCase().trim().replace(/\.(TO|V|CN)$/i, '');
+    const apiKey = 'd8q0q89r01qr03nct970d8q0q89r01qr03nct97g';
+    let socket: WebSocket | null = null;
+
+    try {
+      socket = new WebSocket(`wss://ws.finnhub.io?token=${apiKey}`);
+
+      socket.onopen = () => {
+        socket?.send(JSON.stringify({ type: 'subscribe', symbol: cleanTicker }));
+        setIsWebSocketActive(true);
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg && msg.type === 'trade' && Array.isArray(msg.data) && msg.data.length > 0) {
+            const lastTrade = msg.data[msg.data.length - 1];
+            if (typeof lastTrade.p === 'number' && lastTrade.p > 0) {
+              const livePrice = parseFloat(lastTrade.p.toFixed(2));
+              const liveTime = new Date(lastTrade.t || Date.now()).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              });
+
+              setDataPoints((prev) => {
+                if (prev.length === 0) return [{ date: liveTime, price: livePrice }];
+                const updated = [...prev];
+                const lastIdx = updated.length - 1;
+                updated[lastIdx] = { ...updated[lastIdx], price: livePrice };
+                return updated;
+              });
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing Finnhub WebSocket trade message:', e);
+        }
+      };
+
+      socket.onerror = (err) => {
+        console.error('Finnhub WebSocket error:', err);
+        setIsWebSocketActive(false);
+      };
+
+      socket.onclose = () => {
+        setIsWebSocketActive(false);
+      };
+    } catch (err) {
+      console.error('Failed to open Finnhub WebSocket:', err);
+    }
+
+    return () => {
+      if (socket) {
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ type: 'unsubscribe', symbol: cleanTicker }));
+        }
+        socket.close();
+      }
+      setIsWebSocketActive(false);
     };
   }, [ticker, range]);
 
@@ -95,6 +164,16 @@ export const StockPriceChart: React.FC<StockPriceChartProps> = ({
                 {isUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                 {isUp ? '+' : ''}
                 {priceChangePct.toFixed(2)}% ({range.toUpperCase()})
+              </span>
+            )}
+
+            {range === '1d' && isWebSocketActive && (
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                Live WebSocket
               </span>
             )}
           </div>

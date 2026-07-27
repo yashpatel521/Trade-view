@@ -81,6 +81,34 @@ export async function ensureTablesAndAdminSeeded() {
           note TEXT,
           created_at TIMESTAMP NOT NULL DEFAULT NOW()
         );
+
+        CREATE TABLE IF NOT EXISTS weekly_reports (
+          id SERIAL PRIMARY KEY,
+          report_data TEXT NOT NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS stock_strategy_predictions (
+          id SERIAL PRIMARY KEY,
+          ticker TEXT NOT NULL,
+          prediction_data TEXT NOT NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS watchlist (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          ticker TEXT NOT NULL,
+          added_at TIMESTAMP NOT NULL DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS stock_chart_candles (
+          id SERIAL PRIMARY KEY,
+          ticker TEXT NOT NULL,
+          range TEXT NOT NULL,
+          candle_data TEXT NOT NULL,
+          updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+        );
       `);
       console.log('[Auto-Initializer] PostgreSQL tables verified/created successfully.');
     } else if (driver === 'sqlite' && sqliteClientInstance) {
@@ -128,6 +156,38 @@ export async function ensureTablesAndAdminSeeded() {
           profit_loss REAL NOT NULL,
           note TEXT,
           created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000)
+        );
+      `);
+      await sqliteClientInstance.execute(`
+        CREATE TABLE IF NOT EXISTS weekly_reports (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          report_data TEXT NOT NULL,
+          created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000)
+        );
+      `);
+      await sqliteClientInstance.execute(`
+        CREATE TABLE IF NOT EXISTS stock_strategy_predictions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          ticker TEXT NOT NULL,
+          prediction_data TEXT NOT NULL,
+          created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000)
+        );
+      `);
+      await sqliteClientInstance.execute(`
+        CREATE TABLE IF NOT EXISTS watchlist (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          ticker TEXT NOT NULL,
+          added_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000)
+        );
+      `);
+      await sqliteClientInstance.execute(`
+        CREATE TABLE IF NOT EXISTS stock_chart_candles (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          ticker TEXT NOT NULL,
+          range TEXT NOT NULL,
+          candle_data TEXT NOT NULL,
+          updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000)
         );
       `);
       console.log('[Auto-Initializer] SQLite tables verified/created successfully.');

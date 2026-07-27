@@ -3,15 +3,24 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { TrendingUp, LayoutDashboard, Layers, PlusCircle, Settings, Users } from 'lucide-react';
+import { TrendingUp, LayoutDashboard, Layers, PlusCircle, Settings, Users, FileText, History, Bookmark, BookOpen } from 'lucide-react';
 
-export const Sidebar: React.FC = () => {
+interface SidebarProps {
+  isAdmin?: boolean;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
   const pathname = usePathname();
 
   const isDashboardActive = pathname === '/dashboard';
   const isStocksActive = pathname === '/dashboard/stocks';
-  const isAddActive = pathname === '/dashboard/add';
+  const isWatchlistActive = pathname === '/dashboard/watchlist';
   const isPortfoliosActive = pathname === '/dashboard/portfolios';
+  const isWeeklyReportActive = pathname === '/dashboard/weekly-report';
+  const isHistoryActive = pathname === '/dashboard/report-history';
+  const isUsersActive = pathname === '/dashboard/users';
+  const isJournalActive = pathname === '/dashboard/journal';
+  const isAddActive = pathname === '/dashboard/add';
   const isSettingsActive = pathname === '/dashboard/settings';
 
   return (
@@ -49,6 +58,76 @@ export const Sidebar: React.FC = () => {
           <Layers className={`h-4 w-4 ${isStocksActive ? 'text-white' : 'text-neutral-500'}`} />
           Stocks
         </Link>
+
+        <Link
+          href="/dashboard/watchlist"
+          className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+            isWatchlistActive 
+              ? 'text-white bg-neutral-800' 
+              : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50'
+          }`}
+        >
+          <Bookmark className={`h-4 w-4 ${isWatchlistActive ? 'text-white' : 'text-neutral-500'}`} />
+          Watchlist
+        </Link>
+
+        <Link
+          href="/dashboard/journal"
+          className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+            isJournalActive 
+              ? 'text-white bg-neutral-800' 
+              : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50'
+          }`}
+        >
+          <BookOpen className={`h-4 w-4 ${isJournalActive ? 'text-blue-400' : 'text-neutral-500'}`} />
+          Journal
+        </Link>
+
+        {/* Admin Only: Weekly Report, History & Users */}
+        {isAdmin && (
+          <>
+            <Link
+              href="/dashboard/users"
+              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                isUsersActive 
+                  ? 'text-white bg-neutral-800' 
+                  : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50'
+              }`}
+            >
+              <Users className={`h-4 w-4 ${isUsersActive ? 'text-amber-400' : 'text-neutral-500'}`} />
+              <span>Users</span>
+            </Link>
+
+            <Link
+              href="/dashboard/weekly-report"
+              className={`flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                isWeeklyReportActive 
+                  ? 'text-white bg-neutral-800' 
+                  : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <FileText className={`h-4 w-4 ${isWeeklyReportActive ? 'text-white' : 'text-neutral-500'}`} />
+                <span>Weekly Report</span>
+              </div>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                AI
+              </span>
+            </Link>
+
+            <Link
+              href="/dashboard/report-history"
+              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                isHistoryActive 
+                  ? 'text-white bg-neutral-800' 
+                  : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50'
+              }`}
+            >
+              <History className={`h-4 w-4 ${isHistoryActive ? 'text-white' : 'text-neutral-500'}`} />
+              Report History
+            </Link>
+          </>
+        )}
 
         <Link
           href="/dashboard/portfolios"

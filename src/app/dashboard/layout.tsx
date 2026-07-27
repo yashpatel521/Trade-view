@@ -25,7 +25,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-screen bg-[#0a0a0a] text-neutral-100 overflow-hidden">
-      <Sidebar />
+      <Sidebar isAdmin={session.role === 'admin'} />
 
       <div className="flex flex-col flex-1 overflow-hidden">
         <Header session={session} cashBalance={user?.cashBalance ?? 0} fxRate={fxRate} />

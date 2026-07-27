@@ -1,9 +1,13 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { TrendingUp, BarChart3, PieChart, Shield, ArrowRight, DollarSign } from 'lucide-react';
 import { getSession } from '@/lib/session';
 
 export default async function Home() {
   const session = await getSession();
+  if (session) {
+    redirect('/dashboard');
+  }
 
   return (
     <div className="relative min-h-screen bg-[#0a0a0a] text-white flex flex-col">

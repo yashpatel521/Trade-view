@@ -1,27 +1,45 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Holding, Trade } from '@/types/trading';
 import { useCurrencyStore } from '@/lib/store';
-import { ArrowLeft, ArrowUpRight, ArrowDownRight, Plus, TrendingDown, DollarSign, TrendingUp, History } from 'lucide-react';
+import { toggleWatchlistAction, isInWatchlistAction } from '@/lib/actions/trading';
+import { ArrowLeft, ArrowUpRight, ArrowDownRight, Plus, TrendingDown, DollarSign, TrendingUp, History, Bookmark, Loader2 } from 'lucide-react';
 import SellModal from '@/components/dashboard/SellModal';
 import StockPriceChart from '@/components/dashboard/StockPriceChart';
 import MarketDetailsCard from '@/components/dashboard/MarketDetailsCard';
+import StockNewsCard from '@/components/dashboard/StockNewsCard';
+import StrategyForecastCard from '@/components/dashboard/StrategyForecastCard';
 
 interface StockDetailClientProps {
   ticker: string;
   holding: Holding | null;
   trades: Trade[];
   fxRate: number;
+  isAdmin?: boolean;
 }
 
-export default function StockDetailClient({ ticker, holding, trades, fxRate }: StockDetailClientProps) {
+export default function StockDetailClient({ ticker, holding, trades, fxRate, isAdmin = false }: StockDetailClientProps) {
   const { currency } = useCurrencyStore();
   const [sellingHolding, setSellingHolding] = useState<Holding | null>(null);
+  const [isPinned, setIsPinned] = useState(false);
+  const [isTogglingWatchlist, setIsTogglingWatchlist] = useState(false);
 
   const tickerUpper = ticker.toUpperCase().trim();
+
+  useEffect(() => {
+    isInWatchlistAction(tickerUpper).then(setIsPinned);
+  }, [tickerUpper]);
+
+  const handleToggleWatchlist = async () => {
+    setIsTogglingWatchlist(true);
+    const res = await toggleWatchlistAction(tickerUpper);
+    setIsPinned(res.inWatchlist);
+    setIsTogglingWatchlist(false);
+  };
+
   const isCADStock = tickerUpper.endsWith('.TO') || tickerUpper.endsWith('.V') || tickerUpper.endsWith('.CN');
   const nativeCur: 'USD' | 'CAD' = holding?.nativeCurrency || (isCADStock ? 'CAD' : 'USD');
 
@@ -80,6 +98,23 @@ export default function StockDetailClient({ ticker, holding, trades, fxRate }: S
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2.5">
+            <button
+              onClick={handleToggleWatchlist}
+              disabled={isTogglingWatchlist}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg transition-colors border cursor-pointer ${
+                isPinned
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
+                  : 'bg-neutral-900 text-neutral-300 border-neutral-800 hover:bg-neutral-800 hover:text-white'
+              }`}
+            >
+              {isTogglingWatchlist ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-400" />
+              ) : (
+                <Bookmark className={`h-3.5 w-3.5 ${isPinned ? 'fill-emerald-400 text-emerald-400' : ''}`} />
+              )}
+              <span>{isPinned ? 'Watchlisted' : 'Add to Watchlist'}</span>
+            </button>
+
             <Link
               href="/dashboard/add"
               className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white text-black font-semibold text-xs rounded-lg hover:bg-neutral-200 transition-colors shadow-sm cursor-pointer"
@@ -169,6 +204,12 @@ export default function StockDetailClient({ ticker, holding, trades, fxRate }: S
           <MarketDetailsCard ticker={tickerUpper} nativeCurrency={nativeCur} className="h-full" />
         </div>
       </div>
+
+      {/* Stock Trading Strategy Forecasts (Trend Following Strategy & Multi-Model Engine) */}
+      <StrategyForecastCard ticker={tickerUpper} isAdmin={isAdmin} />
+
+      {/* Stock Company News (Powered by Finnhub API) */}
+      <StockNewsCard ticker={tickerUpper} />
 
       {/* Trade History for this Ticker */}
       <Card>

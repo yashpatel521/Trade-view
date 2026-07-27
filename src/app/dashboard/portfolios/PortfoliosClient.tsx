@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useCurrencyStore } from '@/lib/store';
 import { PublicPortfolio } from '@/types/trading';
 import { Card } from '@/components/ui/Card';
-import { Globe, Search, TrendingUp, User } from 'lucide-react';
+import { Search, TrendingUp, User } from 'lucide-react';
 
 import Link from 'next/link';
 
@@ -34,43 +34,43 @@ export default function PortfoliosClient({ portfolios, fxRate }: PortfoliosClien
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl">
-      {/* Header */}
-      <div className="flex items-center gap-2.5 border-b border-[#1a1a1a] pb-4">
-        <Globe className="h-5 w-5 text-neutral-400" />
-        <div>
-          <h2 className="text-xl font-bold text-white tracking-tight">Leaderboard</h2>
-          <p className="text-xs text-neutral-500 mt-0.5">Explore portfolios of other traders in the community</p>
+      {/* Leaderboard Table Card */}
+      <Card className="p-0 overflow-hidden">
+        {/* Table Toolbar Header with Integrated Search Bar */}
+        <div className="p-4 border-b border-[#222] bg-[#141414] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-emerald-400" />
+            <span className="text-xs font-bold text-white uppercase tracking-wider">Trader Portfolios</span>
+            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-neutral-800 text-neutral-400 border border-neutral-700">
+              {filteredPortfolios.length} Active
+            </span>
+          </div>
+
+          <div className="relative w-full sm:w-80">
+            <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-500">
+              <Search className="h-3.5 w-3.5" />
+            </span>
+            <input
+              type="text"
+              placeholder="Search traders by name or email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 bg-[#0a0a0a] border border-[#262626] rounded-lg text-xs placeholder-neutral-500 focus:outline-none transition"
+            />
+          </div>
         </div>
-      </div>
 
-      {/* Search Filter */}
-      <div className="relative max-w-md w-full">
-        <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-500">
-          <Search className="h-4 w-4" />
-        </span>
-        <input
-          type="text"
-          placeholder="Search traders by name or email..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 bg-neutral-900 border border-neutral-805 rounded-lg text-sm text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:border-neutral-600 focus:ring-1 focus:ring-neutral-700 transition duration-150"
-        />
-      </div>
-
-      {/* Leaderboard Table */}
-      <Card>
-        <div className="overflow-x-auto -mx-6">
-          <div className="inline-block min-w-full align-middle px-6">
-            <table className="min-w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-[#222] text-neutral-500 font-medium uppercase tracking-wider">
-                  <th className="py-3 px-2 text-center w-12">Rank</th>
-                  <th className="py-3 px-2">Trader</th>
-                  <th className="py-3 px-2">Assets</th>
-                  <th className="py-3 px-2">Holdings Summary</th>
-                  <th className="py-3 px-2 text-right">Total Balance</th>
-                </tr>
-              </thead>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-[#222] text-neutral-400 font-semibold uppercase tracking-wider bg-[#141414]">
+                <th className="py-3.5 px-4 text-center w-12 font-bold text-white">Rank</th>
+                <th className="py-3.5 px-4 font-bold text-white">Trader</th>
+                <th className="py-3.5 px-4">Assets</th>
+                <th className="py-3.5 px-4">Holdings Summary</th>
+                <th className="py-3.5 px-4 text-right font-bold text-white">Total Balance ({currency})</th>
+              </tr>
+            </thead>
               <tbody className="divide-y divide-[#1a1a1a]">
                 {filteredPortfolios.length > 0 ? (
                   filteredPortfolios.map((p, index) => (
@@ -138,7 +138,7 @@ export default function PortfoliosClient({ portfolios, fxRate }: PortfoliosClien
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="py-12 text-center text-neutral-550 text-xs">
+                    <td colSpan={5} className="py-12 text-center text-neutral-500 text-xs">
                       No portfolios matching search parameters.
                     </td>
                   </tr>
@@ -146,7 +146,6 @@ export default function PortfoliosClient({ portfolios, fxRate }: PortfoliosClien
               </tbody>
             </table>
           </div>
-        </div>
       </Card>
     </div>
   );
