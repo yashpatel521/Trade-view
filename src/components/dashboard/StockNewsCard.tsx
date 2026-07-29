@@ -31,6 +31,8 @@ export const StockNewsCard: React.FC<StockNewsCardProps> = ({ ticker, className 
     };
   }, [ticker]);
 
+  const latestNews = news.slice(0, 3);
+
   return (
     <Card className={`flex flex-col gap-4 ${className}`}>
       {/* Header */}
@@ -45,7 +47,7 @@ export const StockNewsCard: React.FC<StockNewsCardProps> = ({ ticker, className 
           </div>
         </div>
         {!isLoading && (
-          <span className="text-xs text-neutral-500 font-medium">{news.length} articles</span>
+          <span className="text-xs text-neutral-500 font-medium">Top {latestNews.length} articles</span>
         )}
       </div>
 
@@ -55,9 +57,9 @@ export const StockNewsCard: React.FC<StockNewsCardProps> = ({ ticker, className 
           <Loader2 className="h-4 w-4 animate-spin text-neutral-400" />
           Loading company news for {ticker}...
         </div>
-      ) : news.length > 0 ? (
+      ) : latestNews.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {news.map((item) => (
+          {latestNews.map((item) => (
             <a
               key={item.id}
               href={item.url}

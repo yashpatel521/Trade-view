@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { StrategyPrediction, StrategyMetric } from '@/types/trading';
 import { getStrategyPredictionsAction, rescanStockStrategyAction } from '@/lib/actions/trading';
-import { BrainCircuit, TrendingUp, TrendingDown, Minus, Target, ShieldAlert, Clock, Loader2, Sparkles, Activity, RotateCw, Database } from 'lucide-react';
+import { BrainCircuit, TrendingUp, TrendingDown, Minus, Target, ShieldAlert, Clock, Loader2, Sparkles, Activity, RotateCw, Database, Eye, Layers } from 'lucide-react';
+import PatternVisualizerModal from '@/components/dashboard/PatternVisualizerModal';
 
 interface StrategyForecastCardProps {
   ticker: string;
@@ -17,6 +18,7 @@ export const StrategyForecastCard: React.FC<StrategyForecastCardProps> = ({ tick
   const [selectedStrategyId, setSelectedStrategyId] = useState<string>('gemini-ai');
   const [isLoading, setIsLoading] = useState(true);
   const [isRescanning, setIsRescanning] = useState(false);
+  const [isPatternModalOpen, setIsPatternModalOpen] = useState(false);
 
   useEffect(() => {
     let isSubscribed = true;
@@ -198,13 +200,23 @@ export const StrategyForecastCard: React.FC<StrategyForecastCardProps> = ({ tick
             </div>
           </div>
 
-          {/* Strategy Model Technical Explanation */}
-          <div className="p-3.5 rounded-xl bg-neutral-900/50 border border-neutral-800/80 flex items-start gap-3">
-            <Activity className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
-            <div>
-              <h4 className="text-xs font-semibold text-white mb-1">Model Synthesis & Technical Rationale</h4>
-              <p className="text-xs text-neutral-300 leading-relaxed">{activePrediction.summary}</p>
+          {/* Strategy Model Technical Explanation & Modal Trigger */}
+          <div className="p-3.5 rounded-xl bg-neutral-900/50 border border-neutral-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <Activity className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
+              <div>
+                <h4 className="text-xs font-semibold text-white mb-1">Model Synthesis & Technical Rationale</h4>
+                <p className="text-xs text-neutral-300 leading-relaxed">{activePrediction.summary}</p>
+              </div>
             </div>
+
+            <button
+              onClick={() => setIsPatternModalOpen(true)}
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-xs font-bold rounded-lg transition-colors cursor-pointer shrink-0"
+            >
+              <Eye className="h-3.5 w-3.5" />
+              <span>Analyze Pattern Chart</span>
+            </button>
           </div>
 
           {/* Technical Indicator Metrics Grid */}
@@ -239,6 +251,16 @@ export const StrategyForecastCard: React.FC<StrategyForecastCardProps> = ({ tick
         <div className="py-8 text-center text-xs text-neutral-500">
           No strategy predictions available for {ticker}.
         </div>
+      )}
+
+      {/* Pattern Visualizer Interactive Modal */}
+      {activePrediction && (
+        <PatternVisualizerModal
+          isOpen={isPatternModalOpen}
+          onClose={() => setIsPatternModalOpen(false)}
+          ticker={ticker}
+          prediction={activePrediction}
+        />
       )}
     </Card>
   );

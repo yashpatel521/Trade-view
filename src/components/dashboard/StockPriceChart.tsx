@@ -10,6 +10,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceDot,
+  ReferenceLine,
 } from 'recharts';
 import { Card } from '@/components/ui/Card';
 import { getStockCandlesAction } from '@/lib/actions/trading';
@@ -28,7 +29,7 @@ export const StockPriceChart: React.FC<StockPriceChartProps> = ({
   nativeCurrency = 'USD',
   className = '',
 }) => {
-  const [range, setRange] = useState<RangeType>('1mo');
+  const [range, setRange] = useState<RangeType>('1d');
   const [dataPoints, setDataPoints] = useState<{ date: string; price: number }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
@@ -89,7 +90,11 @@ export const StockPriceChart: React.FC<StockPriceChartProps> = ({
                 if (prev.length === 0) return [{ date: liveTime, price: livePrice }];
                 const updated = [...prev];
                 const lastIdx = updated.length - 1;
-                updated[lastIdx] = { ...updated[lastIdx], price: livePrice };
+                if (updated[lastIdx].date === liveTime) {
+                  updated[lastIdx] = { date: liveTime, price: livePrice };
+                } else {
+                  updated.push({ date: liveTime, price: livePrice });
+                }
                 return updated;
               });
             }
@@ -142,6 +147,39 @@ export const StockPriceChart: React.FC<StockPriceChartProps> = ({
       if (!maxPoint || p.price > maxPoint.price) maxPoint = p;
       if (!minPoint || p.price < minPoint.price) minPoint = p;
     });
+  }
+
+  const avgPrice = maxPoint && minPoint ? (maxPoint.price + minPoint.price) / 2 : null;
+
+  // Compute chart display data: For 1D mode, pad timeline up to market close (4:00 PM) with null prices
+  let displayData: { date: string; price: number | null }[] = dataPoints;
+
+  if (range === '1d' && dataPoints.length > 0) {
+    displayData = [...dataPoints];
+    const lastDate = dataPoints[dataPoints.length - 1].date;
+    const marketCloseMin = 16 * 60; // 4:00 PM = 960 mins
+    
+    let lastMin = 9 * 60 + 30; // 09:30 AM
+    try {
+      const match = lastDate.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+      if (match) {
+        let hrs = parseInt(match[1], 10);
+        const mins = parseInt(match[2], 10);
+        const ampm = match[3]?.toUpperCase();
+        if (ampm === 'PM' && hrs < 12) hrs += 12;
+        if (ampm === 'AM' && hrs === 12) hrs = 0;
+        lastMin = hrs * 60 + mins;
+      }
+    } catch (e) {}
+
+    for (let m = lastMin + 15; m <= marketCloseMin; m += 15) {
+      const h = Math.floor(m / 60);
+      const mins = m % 60;
+      const d = new Date();
+      d.setHours(h, mins, 0, 0);
+      const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      displayData.push({ date: timeStr, price: null });
+    }
   }
 
   const strokeColor = isUp ? '#10b981' : '#ef4444';
@@ -247,9 +285,9 @@ export const StockPriceChart: React.FC<StockPriceChartProps> = ({
             <Loader2 className="h-4 w-4 animate-spin text-neutral-400" />
             Loading price chart...
           </div>
-        ) : dataPoints.length > 0 ? (
+        ) : displayData.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={dataPoints} margin={{ top: 25, right: 20, left: -10, bottom: 10 }}>
+            <AreaChart data={displayData} margin={{ top: 25, right: 20, left: -10, bottom: 10 }}>
               <defs>
                 <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={strokeColor} stopOpacity={0.3} />
@@ -264,6 +302,7 @@ export const StockPriceChart: React.FC<StockPriceChartProps> = ({
                 tickLine={false}
                 axisLine={false}
                 tickFormatter={(val) => {
+                  if (range === '1d') return val;
                   const parts = val.split('-');
                   return parts.length >= 3 ? `${parts[1]}/${parts[2]}` : val;
                 }}
@@ -284,17 +323,55 @@ export const StockPriceChart: React.FC<StockPriceChartProps> = ({
                   fontSize: '12px',
                   color: '#fff',
                 }}
-                formatter={(val: any) => [fmt(Number(val) || 0), 'Price']}
-                labelFormatter={(label) => `Date: ${label}`}
+                formatter={(val: any) => [val !== null && val !== undefined ? fmt(Number(val) || 0) : '—', 'Price']}
+                labelFormatter={(label) => range === '1d' ? `Time: ${label}` : `Date: ${label}`}
               />
               <Area
                 type="monotone"
                 dataKey="price"
+                connectNulls={false}
                 stroke={strokeColor}
                 strokeWidth={2}
                 fillOpacity={1}
                 fill={`url(#${gradientId})`}
               />
+
+              {/* Continuous Dotted High Price Reference Line */}
+              {maxPoint && (
+                <ReferenceLine
+                  y={maxPoint.price}
+                  stroke="#10b981"
+                  strokeDasharray="4 4"
+                  strokeWidth={1.5}
+                />
+              )}
+
+              {/* Continuous Dotted Low Price Reference Line */}
+              {minPoint && minPoint !== maxPoint && (
+                <ReferenceLine
+                  y={minPoint.price}
+                  stroke="#ef4444"
+                  strokeDasharray="4 4"
+                  strokeWidth={1.5}
+                />
+              )}
+
+              {/* 3rd Continuous Dotted Midpoint / Average Reference Line */}
+              {avgPrice !== null && (
+                <ReferenceLine
+                  y={avgPrice}
+                  stroke="#3b82f6"
+                  strokeDasharray="4 4"
+                  strokeWidth={1.5}
+                  label={{
+                    value: `Avg (Mid): ${fmt(avgPrice)}`,
+                    fill: '#3b82f6',
+                    fontSize: 10,
+                    fontWeight: 'bold',
+                    position: 'right',
+                  }}
+                />
+              )}
 
               {/* Always-visible Highest Price Dot */}
               {maxPoint && (

@@ -12,6 +12,7 @@ import StockPriceChart from '@/components/dashboard/StockPriceChart';
 import MarketDetailsCard from '@/components/dashboard/MarketDetailsCard';
 import StockNewsCard from '@/components/dashboard/StockNewsCard';
 import StrategyForecastCard from '@/components/dashboard/StrategyForecastCard';
+import StrategyComparisonTable from '@/components/dashboard/StrategyComparisonTable';
 
 interface StockDetailClientProps {
   ticker: string;
@@ -29,8 +30,85 @@ export default function StockDetailClient({ ticker, holding, trades, fxRate, isA
 
   const tickerUpper = ticker.toUpperCase().trim();
 
+  const initialLivePrice = holding?.nativeCurrentPrice ?? holding?.currentPrice ?? 0;
+  const [livePrice, setLivePrice] = useState<number>(initialLivePrice);
+  const [isWebSocketActive, setIsWebSocketActive] = useState<boolean>(false);
+  const [priceFlash, setPriceFlash] = useState<'up' | 'down' | null>(null);
+  const prevPriceRef = React.useRef<number>(initialLivePrice);
+
   useEffect(() => {
     isInWatchlistAction(tickerUpper).then(setIsPinned);
+  }, [tickerUpper]);
+
+  useEffect(() => {
+    setLivePrice(initialLivePrice);
+    prevPriceRef.current = initialLivePrice;
+  }, [initialLivePrice]);
+
+  // Finnhub Live WebSocket Stream for stock price
+  useEffect(() => {
+    const isCanadian = tickerUpper.endsWith('.TO') || tickerUpper.endsWith('.V') || tickerUpper.endsWith('.CN');
+    if (isCanadian) {
+      setIsWebSocketActive(false);
+      return;
+    }
+
+    const cleanTicker = tickerUpper.replace(/\.(TO|V|CN)$/i, '');
+    const apiKey = 'd8q0q89r01qr03nct970d8q0q89r01qr03nct97g';
+    let socket: WebSocket | null = null;
+
+    try {
+      socket = new WebSocket(`wss://ws.finnhub.io?token=${apiKey}`);
+
+      socket.onopen = () => {
+        if (socket?.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ type: 'subscribe', symbol: cleanTicker }));
+          setIsWebSocketActive(true);
+        }
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg && msg.type === 'trade' && Array.isArray(msg.data) && msg.data.length > 0) {
+            const lastTrade = msg.data[msg.data.length - 1];
+            if (typeof lastTrade.p === 'number' && lastTrade.p > 0) {
+              const newPrice = parseFloat(lastTrade.p.toFixed(2));
+              if (prevPriceRef.current > 0 && newPrice !== prevPriceRef.current) {
+                setPriceFlash(newPrice > prevPriceRef.current ? 'up' : 'down');
+                setTimeout(() => setPriceFlash(null), 1000);
+              }
+              prevPriceRef.current = newPrice;
+              setLivePrice(newPrice);
+            }
+          }
+        } catch (err) {
+          // Silent fallback for non-trade messages
+        }
+      };
+
+      socket.onerror = () => {
+        // Silently mark inactive on error to prevent noisy console logs
+        setIsWebSocketActive(false);
+      };
+
+      socket.onclose = () => {
+        setIsWebSocketActive(false);
+      };
+    } catch (err) {
+      setIsWebSocketActive(false);
+    }
+
+    return () => {
+      if (socket) {
+        if (socket.readyState === WebSocket.OPEN) {
+          try {
+            socket.send(JSON.stringify({ type: 'unsubscribe', symbol: cleanTicker }));
+          } catch (e) {}
+        }
+        socket.close();
+      }
+    };
   }, [tickerUpper]);
 
   const handleToggleWatchlist = async () => {
@@ -51,13 +129,13 @@ export default function StockDetailClient({ ticker, holding, trades, fxRate, isA
 
   const pct = (val: number) => `${val >= 0 ? '+' : ''}${val.toFixed(2)}%`;
 
-  // Native position metrics
+  // Dynamic Native position metrics
   const shares = holding?.shares ?? 0;
   const avgCost = holding?.nativeAveragePrice ?? holding?.averagePrice ?? 0;
-  const livePrice = holding?.nativeCurrentPrice ?? holding?.currentPrice ?? 0;
+  const displayPrice = livePrice > 0 ? livePrice : (holding?.nativeCurrentPrice ?? holding?.currentPrice ?? 0);
   const totalCost = holding?.nativeTotalCost ?? (shares * avgCost);
-  const currentValue = holding?.nativeCurrentValue ?? (shares * livePrice);
-  const unrealizedPL = holding?.nativeUnrealizedPL ?? (currentValue - totalCost);
+  const currentValue = shares > 0 ? (shares * displayPrice) : (holding?.nativeCurrentValue ?? 0);
+  const unrealizedPL = shares > 0 ? (currentValue - totalCost) : (holding?.nativeUnrealizedPL ?? 0);
   const unrealizedPLPct = totalCost > 0 ? (unrealizedPL / totalCost) * 100 : 0;
 
   return (
@@ -88,10 +166,31 @@ export default function StockDetailClient({ ticker, holding, trades, fxRate, isA
                   {nativeCur === 'USD' ? '🇺🇸 USD' : '🇨🇦 CAD'}
                 </span>
               </div>
-              {livePrice > 0 && (
-                <p className="text-sm font-semibold text-neutral-300 mt-0.5">
-                  Live Price: <span className="text-white font-bold">{fmtNative(livePrice)}</span>
-                </p>
+              {displayPrice > 0 && (
+                <div className="flex items-center gap-2.5 mt-1">
+                  <p className="text-sm font-semibold text-neutral-300">
+                    Live Price:{' '}
+                    <span className={`font-bold transition-colors ${
+                      priceFlash === 'up'
+                        ? 'text-emerald-400'
+                        : priceFlash === 'down'
+                        ? 'text-red-400'
+                        : 'text-white'
+                    }`}>
+                      {fmtNative(displayPrice)}
+                    </span>
+                  </p>
+
+                  {isWebSocketActive && (
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                      </span>
+                      Live WebSocket
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -207,6 +306,9 @@ export default function StockDetailClient({ ticker, holding, trades, fxRate, isA
 
       {/* Stock Trading Strategy Forecasts (Trend Following Strategy & Multi-Model Engine) */}
       <StrategyForecastCard ticker={tickerUpper} isAdmin={isAdmin} />
+
+      {/* Side-by-Side Multi-Strategy Comparison Matrix */}
+      <StrategyComparisonTable ticker={tickerUpper} nativeCurrency={nativeCur} />
 
       {/* Stock Company News (Powered by Finnhub API) */}
       <StockNewsCard ticker={tickerUpper} />
