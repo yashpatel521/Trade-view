@@ -126,7 +126,7 @@ export default function SettingsPage() {
               <select
                 name="actionType"
                 defaultValue="ADD"
-                className="w-full px-3.5 py-2.5 bg-neutral-900 border border-neutral-800 rounded-lg text-sm text-neutral-100 focus:outline-none focus:border-neutral-600 focus:ring-1 focus:ring-neutral-700 transition-colors duration-150 cursor-pointer"
+                className="w-full px-3.5 py-2.5 bg-neutral-900 border border-neutral-800 rounded-lg text-sm text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-700 transition-colors duration-150 cursor-pointer"
               >
                 <option value="ADD">Add Funds (+)</option>
                 <option value="SET">Set Absolute Balance (=)</option>
@@ -191,9 +191,19 @@ export default function SettingsPage() {
                 value="true"
                 checked={isPublic === true}
                 onChange={(e) => setIsPublic(e.target.checked)}
-                className="sr-only peer"
+                className="sr-only"
               />
-              <div className="w-9 h-5 bg-neutral-800 rounded-full peer peer-focus:ring-1 peer-focus:ring-neutral-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-neutral-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-neutral-200 peer-checked:after:bg-neutral-950"></div>
+              <div
+                className={`w-9 h-5 rounded-full transition-colors p-0.5 flex items-center ${
+                  isPublic ? 'bg-emerald-500' : 'bg-neutral-800'
+                }`}
+              >
+                <div
+                  className={`h-4 w-4 rounded-full bg-white shadow-xs transition-transform duration-200 ${
+                    isPublic ? 'translate-x-4' : 'translate-x-0'
+                  }`}
+                />
+              </div>
             </label>
           </div>
 

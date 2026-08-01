@@ -1359,7 +1359,7 @@ export const StockPriceChart: React.FC<StockPriceChartProps> = ({
                       required
                       value={tradeShares}
                       onChange={(e) => setTradeShares(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-neutral-900 border border-neutral-800 rounded-lg text-sm text-white focus:outline-none focus:border-neutral-600"
+                      className="w-full px-3.5 py-2.5 bg-neutral-900 border border-neutral-800 rounded-lg text-sm text-white focus:outline-none focus:ring-1 focus:ring-neutral-700"
                     />
                   </div>
 
