@@ -6,8 +6,7 @@ import * as postgresSchema from '@/db/schema.postgres';
 import { eq, and, desc, ne } from 'drizzle-orm';
 import { getSession } from '@/lib/session';
 import { revalidatePath } from 'next/cache';
-import { MOCK_STOCK_PRICES } from '@/constants';
-import { DashboardData, Holding, DailyLog, Trade, ChartDataPoint, AllocationData, PublicPortfolio, PublicPortfolioDetails, StockNewsItem, StrategyPrediction, WeeklyReportStock, SavedWeeklyReportRecord, WatchlistItem, StockSearchResult } from '@/types/trading';
+import { DashboardData, Holding, DailyLog, ChartDataPoint, AllocationData, PublicPortfolio, PublicPortfolioDetails, StockNewsItem, StrategyPrediction, WeeklyReportStock, SavedWeeklyReportRecord, WatchlistItem, StockSearchResult } from '@/types/trading';
 import { calculateStrategyPredictions, getGeminiAIPrediction, registeredStrategies } from '@/lib/strategies';
 
 // In-memory cache for live price scraping to keep the application fast
@@ -92,7 +91,7 @@ async function fetchFxRate(): Promise<number> {
 async function fetchStockPrice(ticker: string): Promise<{ price: number; currency: string }> {
   const tickerUpper = ticker.toUpperCase().trim();
   const isCanadian = tickerUpper.endsWith('.TO') || tickerUpper.endsWith('.V') || tickerUpper.endsWith('.CN');
-  const apiKey = process.env.FINNHUB_API_KEY || 'd8q0q89r01qr03nct970d8q0q89r01qr03nct97g';
+  const apiKey = (process.env.FINNHUB_API_KEY || '').replace(/['"]/g, '').trim();
 
   // 1. For US stocks, Finnhub API is primary
   if (!isCanadian) {
@@ -175,8 +174,7 @@ async function fetchStockPrice(ticker: string): Promise<{ price: number; currenc
     }
   }
 
-  const fallbackPrice = MOCK_STOCK_PRICES[tickerUpper] ?? 150.0;
-  return { price: fallbackPrice, currency: 'USD' };
+  return { price: 0, currency: isCanadian ? 'CAD' : 'USD' };
 }
 
 
@@ -225,7 +223,6 @@ export async function addTradeAction(prevState: any, formData: FormData) {
     // Calculate total trade cost/proceeds in CAD (base currency for cashBalance)
     const fxRate = await fetchFxRate();
     const tradeTotalInCurrency = shares * price;
-    const tradeTotalInCAD = currency === 'USD' ? tradeTotalInCurrency * fxRate : tradeTotalInCurrency;
 
     // Retrieve existing holding
     const holdingRecords = await db
@@ -983,7 +980,7 @@ export async function getStockCandlesAction(
   // 2. Fetch fresh candle timeline data from Finnhub / Yahoo if DB is empty or stale
   try {
     const cleanTicker = tickerUpper.replace(/\.(TO|V|CN)$/i, '');
-    const apiKey = process.env.FINNHUB_API_KEY || 'd8q0q89r01qr03nct970d8q0q89r01qr03nct97g';
+    const apiKey = (process.env.FINNHUB_API_KEY || '').replace(/['"]/g, '').trim();
 
     let interval = '1d';
     let yahooRange: string = range;
@@ -1248,7 +1245,7 @@ function cleanHtmlEntities(str: string): string {
 export async function getStockNewsAction(ticker: string): Promise<StockNewsItem[]> {
   const tickerUpper = ticker.toUpperCase().trim();
   const cleanTicker = tickerUpper.replace(/\.(TO|V|CN)$/i, '');
-  const apiKey = process.env.FINNHUB_API_KEY || 'd8q0q89r01qr03nct970d8q0q89r01qr03nct97g';
+  const apiKey = (process.env.FINNHUB_API_KEY || '').replace(/['"]/g, '').trim();
 
   const today = new Date().toISOString().split('T')[0];
   const prior = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 3 months history
@@ -1763,7 +1760,7 @@ export async function getAllWeeklyReportsAction(): Promise<SavedWeeklyReportReco
 async function fetchStockPriceDetails(ticker: string): Promise<{ price: number; currency: string; dayChange: number; dayChangePercent: number }> {
   const tickerUpper = ticker.toUpperCase().trim();
   const isCanadian = tickerUpper.endsWith('.TO') || tickerUpper.endsWith('.V') || tickerUpper.endsWith('.CN');
-  const apiKey = process.env.FINNHUB_API_KEY || 'd8q0q89r01qr03nct970d8q0q89r01qr03nct97g';
+  const apiKey = (process.env.FINNHUB_API_KEY || '').replace(/['"]/g, '').trim();
 
   // 1. Primary: Yahoo Finance v8 2D chart provides exact regularMarketPrice & true 24h previousClose
   try {
@@ -1990,7 +1987,7 @@ export async function searchStocksAction(query: string): Promise<StockSearchResu
   const cleanQuery = query.trim();
   if (!cleanQuery || cleanQuery.length < 1) return [];
 
-  const apiKey = process.env.FINNHUB_API_KEY || 'd8q0q89r01qr03nct970d8q0q89r01qr03nct97g';
+  const apiKey = (process.env.FINNHUB_API_KEY || '').replace(/['"]/g, '').trim();
 
   try {
     const res = await fetch(

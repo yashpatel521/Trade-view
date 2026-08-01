@@ -5,7 +5,7 @@ import { updateFundsAction, updatePrivacyAction, getDashboardDataAction } from '
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { DollarSign, Plus, Settings, Eye, EyeOff, Wallet } from 'lucide-react';
+import { Plus, Settings, Eye, EyeOff, Wallet } from 'lucide-react';
 
 export default function SettingsPage() {
   const [state, formAction, isPending] = useActionState(updateFundsAction, {} as any);

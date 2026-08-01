@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { StrategyPrediction } from '@/types/trading';
 import { getStrategyPredictionsAction } from '@/lib/actions/trading';
-import { Table, TrendingUp, TrendingDown, Minus, Target, ShieldAlert, Clock, Scale, Loader2, Sparkles, CheckCircle2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Scale, Loader2 } from 'lucide-react';
 
 interface StrategyComparisonTableProps {
   ticker: string;
@@ -48,7 +48,6 @@ export default function StrategyComparisonTable({
   const totalModels = predictions.length;
   const bullishModels = predictions.filter((p) => p.signal === 'BULLISH').length;
   const bearishModels = predictions.filter((p) => p.signal === 'BEARISH').length;
-  const neutralModels = predictions.filter((p) => p.signal === 'NEUTRAL').length;
 
   const bullishPct = totalModels > 0 ? Math.round((bullishModels / totalModels) * 100) : 0;
   const avgConfidence = totalModels > 0 ? Math.round(predictions.reduce((s, p) => s + p.confidence, 0) / totalModels) : 0;

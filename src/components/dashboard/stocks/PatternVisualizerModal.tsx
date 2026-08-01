@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceDot } from 'recharts';
 import { StrategyPrediction } from '@/types/trading';
 import { getStockCandlesAction } from '@/lib/actions/trading';
-import { X, TrendingUp, TrendingDown, Target, ShieldAlert, Activity, Sparkles, Layers, CheckCircle2, ArrowRight } from 'lucide-react';
+import { X, Activity, Sparkles, Layers, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
 interface PatternVisualizerModalProps {

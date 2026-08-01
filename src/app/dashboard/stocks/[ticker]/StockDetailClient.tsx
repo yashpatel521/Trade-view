@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Holding, Trade } from '@/types/trading';
-import { useCurrencyStore } from '@/lib/store';
 import { toggleWatchlistAction, isInWatchlistAction } from '@/lib/actions/trading';
 import { ArrowLeft, ArrowUpRight, ArrowDownRight, Plus, TrendingDown, DollarSign, TrendingUp, History, Bookmark, Loader2 } from 'lucide-react';
 import SellModal from '@/components/dashboard/stocks/SellModal';
@@ -24,15 +23,11 @@ interface StockDetailClientProps {
 }
 
 export default function StockDetailClient({ ticker, holding, trades, fxRate, isAdmin = false }: StockDetailClientProps) {
-  const { currency } = useCurrencyStore();
   const [sellingHolding, setSellingHolding] = useState<Holding | null>(null);
   const [isPinned, setIsPinned] = useState(false);
   const [isTogglingWatchlist, setIsTogglingWatchlist] = useState(false);
 
   const tickerUpper = ticker.toUpperCase().trim();
-
-  const initialLivePrice = holding?.nativeCurrentPrice ?? holding?.currentPrice ?? 0;
-  const [livePrice, setLivePrice] = useState<number>(initialLivePrice);
 
   useEffect(() => {
     isInWatchlistAction(tickerUpper).then(setIsPinned);
@@ -59,7 +54,7 @@ export default function StockDetailClient({ ticker, holding, trades, fxRate, isA
   // Dynamic Native position metrics
   const shares = holding?.shares ?? 0;
   const avgCost = holding?.nativeAveragePrice ?? holding?.averagePrice ?? 0;
-  const displayPrice = livePrice > 0 ? livePrice : (holding?.nativeCurrentPrice ?? holding?.currentPrice ?? 0);
+  const displayPrice = holding?.nativeCurrentPrice ?? holding?.currentPrice ?? 0;
   const totalCost = holding?.nativeTotalCost ?? (shares * avgCost);
   const currentValue = shares > 0 ? (shares * displayPrice) : (holding?.nativeCurrentValue ?? 0);
   const unrealizedPL = shares > 0 ? (currentValue - totalCost) : (holding?.nativeUnrealizedPL ?? 0);

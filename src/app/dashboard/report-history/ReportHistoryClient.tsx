@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
-import { SavedWeeklyReportRecord, WeeklyReportStock } from '@/types/trading';
+import { SavedWeeklyReportRecord } from '@/types/trading';
 import { History, Calendar, Clock, TrendingUp, ExternalLink, ShieldCheck, Download, Sparkles, Eye, X, FileText } from 'lucide-react';
 
 interface ReportHistoryClientProps {

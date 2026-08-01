@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { WeeklyReportStock } from '@/types/trading';
 import { generateNewWeeklyReportAction } from '@/lib/actions/trading';
-import { FileText, Sparkles, RotateCw, ExternalLink, ShieldCheck, Clock, TrendingUp, Copy, Check, Download, Database } from 'lucide-react';
+import { FileText, RotateCw, ExternalLink, ShieldCheck, Clock, TrendingUp, Copy, Check, Download, Database } from 'lucide-react';
 
 interface WeeklyReportClientProps {
   initialReport: WeeklyReportStock[];

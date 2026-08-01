@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { WatchlistItem } from '@/types/trading';
 import { useCurrencyStore } from '@/lib/store';
 import { addToWatchlistAction, removeFromWatchlistAction } from '@/lib/actions/trading';
-import { Bookmark, Plus, Trash2, TrendingUp, TrendingDown, ExternalLink, Search, Loader2, ArrowRight } from 'lucide-react';
+import { Bookmark, Trash2, TrendingUp, TrendingDown, ExternalLink, Loader2, ArrowRight } from 'lucide-react';
 
 import { StockSearchAutocomplete } from '@/components/layout/StockSearchAutocomplete';
 import { StockLogo } from '@/components/ui/StockLogo';
@@ -19,14 +19,12 @@ interface WatchlistClientProps {
 export function WatchlistClient({ initialItems, liveFxRate }: WatchlistClientProps) {
   const { currency: activeCurrency } = useCurrencyStore();
   const [items, setItems] = useState<WatchlistItem[]>(initialItems);
-  const [isAdding, setIsAdding] = useState(false);
   const [removingTicker, setRemovingTicker] = useState<string | null>(null);
 
   const handleAddSymbol = async (tickerToAdd: string) => {
     const cleanTicker = tickerToAdd.toUpperCase().trim();
     if (!cleanTicker) return;
 
-    setIsAdding(true);
     const res = await addToWatchlistAction(cleanTicker);
     if (res.success && res.item) {
       const newItem = res.item;
@@ -34,7 +32,6 @@ export function WatchlistClient({ initialItems, liveFxRate }: WatchlistClientPro
     } else if (!res.success) {
       alert(res.error || 'Could not add ticker to watchlist.');
     }
-    setIsAdding(false);
   };
 
   const handleRemoveTicker = async (tickerToRemove: string) => {

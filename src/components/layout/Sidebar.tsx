@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  TrendingUp,
   LayoutDashboard,
   Layers,
   PlusCircle,
@@ -17,9 +16,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Briefcase,
-  Sparkles,
-  CandlestickChart,
-  Star,
 } from 'lucide-react';
 import { TradeViewLogo } from '@/components/ui/TradeViewLogo';
 

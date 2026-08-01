@@ -1,5 +1,5 @@
 import { TradingStrategy, StrategyInput } from './types';
-import { geminiAIStrategy, getGeminiAIPrediction } from './geminiAI';
+import { geminiAIStrategy } from './geminiAI';
 import { trendFollowingStrategy } from './trendFollowing';
 import { emaRsiStrategy } from './emaRsi';
 import { chartPatternStrategy } from './chartPattern';

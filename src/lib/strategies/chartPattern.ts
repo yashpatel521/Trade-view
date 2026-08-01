@@ -22,11 +22,9 @@ function detectChartPatterns(prices: number[], currentPrice: number): PatternRes
     };
   }
 
-  const n = prices.length;
   const recent = prices.slice(-30);
   const maxPrice = Math.max(...recent);
   const minPrice = Math.min(...recent);
-  const priceRange = maxPrice - minPrice;
 
   // Find local peaks and troughs
   const peaks: { index: number; price: number }[] = [];
@@ -140,7 +138,7 @@ export const chartPatternStrategy: TradingStrategy = {
   description: 'Algorithmic technical pattern engine detecting classical price structures including Double Tops/Bottoms, Head & Shoulders, Cup & Handle, and Donchian channels.',
 
   calculateSignal(input: StrategyInput): StrategyPrediction {
-    const { ticker, prices, currentPrice } = input;
+    const { prices, currentPrice } = input;
     const cleanPrices = prices && prices.length >= 10 ? prices : [currentPrice * 0.93, currentPrice * 0.96, currentPrice];
 
     const detected = detectChartPatterns(cleanPrices, currentPrice);

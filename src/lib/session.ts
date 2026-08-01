@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { SessionPayload } from '@/types/auth';
 
 const SECRET_KEY = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'trading-saas-dashboard-super-secure-key-987654321-default-value'
+  (process.env.JWT_SECRET || '').trim()
 );
 
 export async function encrypt(payload: SessionPayload): Promise<string> {

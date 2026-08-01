@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { UserRecord, toggleUserRoleAction } from '@/lib/actions/users';
 import { Card } from '@/components/ui/Card';
-import { Users, Shield, ShieldCheck, User, Search, Loader2, DollarSign, Calendar, CheckCircle2 } from 'lucide-react';
+import { Users, Shield, ShieldCheck, User, Search, Loader2 } from 'lucide-react';
 
 interface UsersClientProps {
   initialUsers: UserRecord[];

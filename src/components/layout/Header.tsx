@@ -1,10 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Calendar, User, LogOut, Wallet, ChevronDown } from 'lucide-react';
+import { User, LogOut } from 'lucide-react';
 import { logoutAction } from '@/lib/actions/auth';
 import { SessionPayload } from '@/types/auth';
-import { useCurrencyStore } from '@/lib/store';
 
 interface HeaderProps {
   session: SessionPayload | null;
@@ -16,15 +15,10 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   session,
-  cashBalance = 0,
   cashBalanceCad = 0,
   cashBalanceUsd = 0,
-  fxRate = 1.40,
 }) => {
-  const { currency, setCurrency } = useCurrencyStore();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-
-  const isUSD = currency === 'USD';
 
   const formattedCad = new Intl.NumberFormat('en-CA', {
     style: 'currency',
@@ -35,13 +29,6 @@ export const Header: React.FC<HeaderProps> = ({
     style: 'currency',
     currency: 'USD',
   }).format(cashBalanceUsd);
-
-  const currentDate = new Date().toLocaleDateString('en-US', {
-    weekday: 'short',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
 
   return (
     <header className="h-16 border-b border-[#1a1a1a] bg-[#0a0a0a] flex items-center justify-between px-8 shrink-0">

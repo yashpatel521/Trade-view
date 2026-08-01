@@ -14,7 +14,6 @@ import {
   Wallet,
   Target,
   Activity,
-  ChevronRight,
   Plus,
 } from 'lucide-react';
 import { DashboardData, Holding } from '@/types/trading';

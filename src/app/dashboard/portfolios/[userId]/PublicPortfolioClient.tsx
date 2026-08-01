@@ -4,7 +4,7 @@ import React from 'react';
 import { useCurrencyStore } from '@/lib/store';
 import { PublicPortfolioDetails } from '@/types/trading';
 import { Card } from '@/components/ui/Card';
-import { ArrowLeft, ArrowUpRight, ArrowDownRight, User, Briefcase } from 'lucide-react';
+import { ArrowLeft, User, Briefcase } from 'lucide-react';
 import Link from 'next/link';
 
 interface PublicPortfolioClientProps {

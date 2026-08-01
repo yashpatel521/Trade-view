@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { DashboardData, Holding } from '@/types/trading';
-import { useCurrencyStore } from '@/lib/store';
 import { Search, Plus, PieChart, TrendingDown, TrendingUp } from 'lucide-react';
 import SellModal from '@/components/dashboard/stocks/SellModal';
 import { StockLogo } from '@/components/ui/StockLogo';
@@ -14,14 +13,10 @@ interface StocksClientProps {
 }
 
 export default function StocksClient({ data }: StocksClientProps) {
-  const { currency } = useCurrencyStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [sellingHolding, setSellingHolding] = useState<Holding | null>(null);
 
-  const { stats, holdings } = data;
-  const isUSD = currency === 'USD';
-  const fxRate = stats.fxRate || 1.40;
-  const factor = isUSD ? 1 / fxRate : 1;
+  const { holdings } = data;
 
   const fmtNative = (val: number, cur: 'USD' | 'CAD' = 'USD') =>
     new Intl.NumberFormat(cur === 'CAD' ? 'en-CA' : 'en-US', {
@@ -77,7 +72,7 @@ export default function StocksClient({ data }: StocksClientProps) {
     {
       title: 'Others',
       ticker: othersHoldings.length > 0 ? `${othersHoldings.length} Assets` : 'Others',
-      valStr: fmtNative(isUSD ? othersValueCAD / fxRate : othersValueCAD, isUSD ? 'USD' : 'CAD'),
+      valStr: fmtNative(othersValueCAD, 'CAD'),
       weightPct: totalStockMarketValueCAD > 0 ? (othersValueCAD / totalStockMarketValueCAD) * 100 : 0,
     },
   ];

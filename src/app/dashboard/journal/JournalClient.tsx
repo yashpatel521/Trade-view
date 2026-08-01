@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition, useActionState } from 'react';
+import React, { useState, useActionState } from 'react';
 import { DailyLog } from '@/types/trading';
 import { Card } from '@/components/ui/Card';
 import {
@@ -47,7 +47,7 @@ export default function JournalClient({ initialLogs }: JournalClientProps) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editNote, setEditNote] = useState('');
 
-  const [formState, formAction, isPendingAction] = useActionState(
+  const [formState, formAction] = useActionState(
     async (prevState: any, formData: FormData) => {
       const res = await addDailyLogAction(prevState, formData);
       if (res?.success) {

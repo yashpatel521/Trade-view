@@ -6,21 +6,6 @@ export const ROUTES = {
   DASHBOARD: '/dashboard',
 } as const;
 
-// Mock price database for calculating current value of holdings
-// If a ticker is not in this list, we fall back to a random stable price based on avg price
-export const MOCK_STOCK_PRICES: Record<string, number> = {
-  AAPL: 185.50,
-  MSFT: 420.25,
-  TSLA: 175.80,
-  NVDA: 900.10,
-  AMZN: 180.40,
-  GOOGL: 175.20,
-  META: 475.30,
-  NFLX: 610.15,
-  BTC: 65000.00,
-  ETH: 3450.00,
-};
-
 // Styling settings
 export const APP_THEME = {
   NAME: 'Trade View',
