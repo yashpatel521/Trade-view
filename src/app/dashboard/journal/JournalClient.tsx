@@ -23,15 +23,20 @@ import JournalCalendar from '@/components/dashboard/journal/JournalCalendar';
 
 interface JournalClientProps {
   initialLogs: DailyLog[];
+  todayAutoPL?: number;
+  todayAutoNote?: string;
 }
 
-function SubmitBtn({ label = 'Add to Journal' }: { label?: string }) {
+function SubmitBtn({ label = 'Add to Journal', disabled = false }: { label?: string; disabled?: boolean }) {
   const { pending } = useFormStatus();
+  const isDisabled = pending || disabled;
   return (
     <button
       type="submit"
-      disabled={pending}
-      className="flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-xs font-bold rounded-xl transition cursor-pointer disabled:opacity-50"
+      disabled={isDisabled}
+      className={`flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-xs font-bold rounded-xl transition ${
+        isDisabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'
+      }`}
     >
       {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5 stroke-[2.5]" />}
       {pending ? 'Saving…' : label}
@@ -39,13 +44,32 @@ function SubmitBtn({ label = 'Add to Journal' }: { label?: string }) {
   );
 }
 
-export default function JournalClient({ initialLogs }: JournalClientProps) {
+export default function JournalClient({
+  initialLogs,
+  todayAutoPL = 0,
+  todayAutoNote = '',
+}: JournalClientProps) {
   const [logs, setLogs] = useState<DailyLog[]>(initialLogs);
   const [showAddModal, setShowAddModal] = useState(false);
   const [viewMode, setViewMode] = useState<'calendar' | 'table'>('calendar');
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editNote, setEditNote] = useState('');
+
+  const today = new Date().toISOString().split('T')[0];
+  const [inlineDate, setInlineDate] = useState(today);
+  const [modalDate, setModalDate] = useState(today);
+
+  const isWeekend = (dateStr: string) => {
+    if (!dateStr) return false;
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const dateObj = new Date(year, month - 1, day);
+    const dayOfWeek = dateObj.getDay();
+    return dayOfWeek === 0 || dayOfWeek === 6;
+  };
+
+  const isInlineWeekend = isWeekend(inlineDate);
+  const isModalWeekend = isWeekend(modalDate);
 
   const [formState, formAction] = useActionState(
     async (prevState: any, formData: FormData) => {
@@ -60,7 +84,6 @@ export default function JournalClient({ initialLogs }: JournalClientProps) {
   );
 
   // Today's P&L calculation
-  const today = new Date().toISOString().split('T')[0];
   const todayLog = logs.find((l) => l.date === today);
   const todayPL = todayLog ? todayLog.profitLoss : 0;
   const hasTodayLog = Boolean(todayLog);
@@ -121,16 +144,24 @@ export default function JournalClient({ initialLogs }: JournalClientProps) {
             </span>
           </div>
           <p className={`text-xl font-black mt-1 ${
-            !hasTodayLog
+            !hasTodayLog && todayAutoPL === 0
               ? 'text-neutral-400'
-              : todayPL >= 0
+              : (hasTodayLog ? todayPL : todayAutoPL) >= 0
               ? 'text-emerald-400'
               : 'text-red-400'
           }`}>
-            {hasTodayLog ? (todayPL >= 0 ? `+${fmt(todayPL)}` : fmt(todayPL)) : '$0.00'}
+            {hasTodayLog
+              ? (todayPL >= 0 ? `+${fmt(todayPL)}` : fmt(todayPL))
+              : todayAutoPL !== 0
+              ? (todayAutoPL >= 0 ? `+${fmt(todayAutoPL)}` : fmt(todayAutoPL))
+              : '$0.00'}
           </p>
           <p className="text-[10px] text-neutral-500 mt-1 truncate">
-            {hasTodayLog ? (todayPL >= 0 ? 'Profit recorded today' : 'Loss recorded today') : 'No entry logged today'}
+            {hasTodayLog
+              ? (todayPL >= 0 ? 'Profit recorded today' : 'Loss recorded today')
+              : todayAutoPL !== 0
+              ? '⚡ Calculated from live holdings'
+              : 'No entry logged today'}
           </p>
         </div>
 
@@ -172,6 +203,15 @@ export default function JournalClient({ initialLogs }: JournalClientProps) {
             <PencilLine className="h-4 w-4 text-emerald-400" />
             <span className="text-xs font-bold text-white uppercase tracking-wider">Log Today&apos;s Profit or Loss</span>
           </div>
+          {isInlineWeekend ? (
+            <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              Weekend (Market Closed)
+            </span>
+          ) : todayAutoPL !== 0 ? (
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              ⚡ Auto-filled from Live Holdings
+            </span>
+          ) : null}
         </div>
 
         <form action={formAction} className="p-5">
@@ -182,7 +222,8 @@ export default function JournalClient({ initialLogs }: JournalClientProps) {
               <input
                 type="date"
                 name="date"
-                defaultValue={today}
+                value={inlineDate}
+                onChange={(e) => setInlineDate(e.target.value)}
                 required
                 className="px-3.5 py-2.5 bg-[#0a0a0a] border border-[#262626] rounded-xl text-xs text-white focus:outline-none transition w-full sm:w-36"
               />
@@ -190,34 +231,52 @@ export default function JournalClient({ initialLogs }: JournalClientProps) {
 
             {/* P&L Amount */}
             <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-              <label className="text-[10px] text-neutral-500 uppercase tracking-wider font-semibold">Profit or Loss (CAD)</label>
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] text-neutral-500 uppercase tracking-wider font-semibold">Profit or Loss (CAD)</label>
+              </div>
               <input
                 type="number"
                 name="profitLoss"
-                placeholder="e.g. +250.00 or -120.50"
+                key={`inline-pnl-${inlineDate}`}
+                defaultValue={isInlineWeekend ? '' : (hasTodayLog ? todayLog?.profitLoss : (todayAutoPL !== 0 ? todayAutoPL : ''))}
+                disabled={isInlineWeekend}
+                placeholder={isInlineWeekend ? 'Market Closed (Weekend)' : 'e.g. +250.00 or -120.50'}
                 step="0.01"
-                required
-                className="px-3.5 py-2.5 bg-[#0a0a0a] border border-[#262626] rounded-xl text-xs text-white focus:outline-none transition w-full"
+                required={!isInlineWeekend}
+                className="px-3.5 py-2.5 bg-[#0a0a0a] border border-[#262626] rounded-xl text-xs text-white font-bold focus:outline-none transition w-full disabled:opacity-40 disabled:cursor-not-allowed"
               />
             </div>
 
             {/* Note */}
             <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-              <label className="text-[10px] text-neutral-500 uppercase tracking-wider font-semibold">Note / Strategy (optional)</label>
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] text-neutral-500 uppercase tracking-wider font-semibold">Note / Strategy</label>
+              </div>
               <input
                 type="text"
                 name="note"
-                placeholder="e.g. Sold NVDA, covered TSLA puts…"
+                key={`inline-note-${inlineDate}`}
+                defaultValue={isInlineWeekend ? '' : (hasTodayLog ? (todayLog?.note || '') : todayAutoNote)}
+                disabled={isInlineWeekend}
+                placeholder={isInlineWeekend ? 'Market Closed (Weekend)' : 'e.g. Sold NVDA, covered TSLA puts…'}
                 maxLength={200}
-                className="px-3.5 py-2.5 bg-[#0a0a0a] border border-[#262626] rounded-xl text-xs text-white focus:outline-none transition w-full"
+                className="px-3.5 py-2.5 bg-[#0a0a0a] border border-[#262626] rounded-xl text-xs text-white focus:outline-none transition w-full disabled:opacity-40 disabled:cursor-not-allowed"
               />
             </div>
 
             {/* Submit Button */}
             <div className="flex flex-col justify-end">
-              <SubmitBtn label="Add to Journal" />
+              <SubmitBtn label="Add to Journal" disabled={isInlineWeekend} />
             </div>
           </div>
+
+          {/* Weekend Warning */}
+          {isInlineWeekend && (
+            <div className="mt-3 flex items-center gap-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3.5 py-2 font-medium">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>Weekend date selected ({inlineDate}). Stock markets are closed on Saturday &amp; Sunday — journal entries are disabled for weekends.</span>
+            </div>
+          )}
 
           {/* Form feedback */}
           {formState?.error && (
@@ -255,34 +314,58 @@ export default function JournalClient({ initialLogs }: JournalClientProps) {
                 <input
                   type="date"
                   name="date"
-                  defaultValue={today}
+                  value={modalDate}
+                  onChange={(e) => setModalDate(e.target.value)}
                   required
                   className="w-full px-3.5 py-2.5 bg-[#0a0a0a] border border-neutral-800 rounded-xl text-xs text-white focus:outline-none"
                 />
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-neutral-400 font-semibold uppercase">Profit or Loss Amount (CAD)</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-neutral-400 font-semibold uppercase">Profit or Loss Amount (CAD)</label>
+                  {!isModalWeekend && todayAutoPL !== 0 && (
+                    <span className="text-[10px] font-semibold text-emerald-400">⚡ Live Auto-filled</span>
+                  )}
+                </div>
                 <input
                   type="number"
                   name="profitLoss"
-                  placeholder="e.g. 500.00 or -150.00"
+                  key={`modal-pnl-${modalDate}`}
+                  defaultValue={isModalWeekend ? '' : (hasTodayLog ? todayLog?.profitLoss : (todayAutoPL !== 0 ? todayAutoPL : ''))}
+                  disabled={isModalWeekend}
+                  placeholder={isModalWeekend ? 'Market Closed (Weekend)' : 'e.g. 500.00 or -150.00'}
                   step="0.01"
-                  required
-                  className="w-full px-3.5 py-2.5 bg-[#0a0a0a] border border-neutral-800 rounded-xl text-xs text-white focus:outline-none"
+                  required={!isModalWeekend}
+                  className="w-full px-3.5 py-2.5 bg-[#0a0a0a] border border-neutral-800 rounded-xl text-xs font-bold text-white focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed"
                 />
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-neutral-400 font-semibold uppercase">Trading Note</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-neutral-400 font-semibold uppercase">Trading Note</label>
+                  {!isModalWeekend && todayAutoNote && (
+                    <span className="text-[10px] font-semibold text-emerald-400">⚡ Live Holdings Summary</span>
+                  )}
+                </div>
                 <input
                   type="text"
                   name="note"
-                  placeholder="e.g. Great execution on intraday reversal…"
+                  key={`modal-note-${modalDate}`}
+                  defaultValue={isModalWeekend ? '' : (hasTodayLog ? (todayLog?.note || '') : todayAutoNote)}
+                  disabled={isModalWeekend}
+                  placeholder={isModalWeekend ? 'Market Closed (Weekend)' : 'e.g. Great execution on intraday reversal…'}
                   maxLength={200}
-                  className="w-full px-3.5 py-2.5 bg-[#0a0a0a] border border-neutral-800 rounded-xl text-xs text-white focus:outline-none"
+                  className="w-full px-3.5 py-2.5 bg-[#0a0a0a] border border-neutral-800 rounded-xl text-xs text-white focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed"
                 />
               </div>
+
+              {isModalWeekend && (
+                <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2 font-medium">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>Markets are closed on Saturday &amp; Sunday — journal entries are disabled for weekends.</span>
+                </div>
+              )}
 
               {formState?.error && (
                 <div className="flex items-center gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
@@ -299,7 +382,7 @@ export default function JournalClient({ initialLogs }: JournalClientProps) {
                 >
                   Cancel
                 </button>
-                <SubmitBtn label="Add to Journal" />
+                <SubmitBtn label="Add to Journal" disabled={isModalWeekend} />
               </div>
             </form>
           </div>

@@ -15,5 +15,11 @@ export default async function JournalPage() {
 
   const result = await getDailyLogsAction();
 
-  return <JournalClient initialLogs={result?.logs ?? []} />;
+  return (
+    <JournalClient
+      initialLogs={result?.logs ?? []}
+      todayAutoPL={result?.todayAutoPL ?? 0}
+      todayAutoNote={result?.todayAutoNote ?? ''}
+    />
+  );
 }

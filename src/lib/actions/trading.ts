@@ -372,6 +372,13 @@ export async function addDailyLogAction(prevState: any, formData: FormData) {
       return { error: 'Invalid input. Please provide a valid date and P&L value.' };
     }
 
+    // Server-side check for Saturday (6) and Sunday (0)
+    const [y, m, d] = date.split('-').map(Number);
+    const dayOfWeek = new Date(y, m - 1, d).getDay();
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      return { error: 'Markets are closed on Saturday and Sunday. Journal entries are disabled for weekends.' };
+    }
+
     // Check if a P&L log for this date already exists
     const existingLog = await db.query.dailyLogs.findFirst({
       where: and(eq(dailyLogs.userId, userId), eq(dailyLogs.date, date)),
@@ -482,19 +489,52 @@ export async function checkAndAutoLogDailyJournal(userId: number) {
   }
 }
 
-export async function getDailyLogsAction(): Promise<{ logs: DailyLog[] } | null> {
+export async function getDailyLogsAction(): Promise<{ logs: DailyLog[]; todayAutoPL: number; todayAutoNote: string } | null> {
   try {
     const session = await getSession();
     if (!session) return null;
-    const userId = session.userId;
+    const userId = session.userId as number;
 
     // Check and auto-log weekday 5:00 PM journal entry
     await checkAndAutoLogDailyJournal(userId);
 
-    const logs = await db.query.dailyLogs.findMany({
-      where: eq(dailyLogs.userId, userId),
-      orderBy: [desc(dailyLogs.date)],
-    });
+    const driver = (process.env.DATABASE_DRIVER || '').toLowerCase();
+    const targetDailyLogs = driver === 'postgres' ? (postgresSchema.dailyLogs as any) : (dailyLogs as any);
+    const targetHoldings = driver === 'postgres' ? (postgresSchema.holdings as any) : (holdings as any);
+
+    const logs = await db
+      .select()
+      .from(targetDailyLogs)
+      .where(eq(targetDailyLogs.userId, userId))
+      .orderBy(desc(targetDailyLogs.date));
+
+    // Calculate today's live holdings P&L and summary note
+    const userHoldings = await db
+      .select()
+      .from(targetHoldings)
+      .where(eq(targetHoldings.userId, userId));
+
+    const fxRate = await fetchFxRate();
+    let totalUnrealizedPLInCAD = 0;
+    const holdingNotesParts: string[] = [];
+
+    for (const h of userHoldings) {
+      if (!h.shares || h.shares <= 0) continue;
+      const tickerUpper = h.ticker.toUpperCase();
+      const liveData = await fetchStockPrice(tickerUpper);
+      const isCanadian = tickerUpper.endsWith('.TO') || tickerUpper.endsWith('.V') || tickerUpper.endsWith('.CN');
+      const nativePL = (liveData.price - h.averagePrice) * h.shares;
+      const plInCAD = isCanadian ? nativePL : nativePL * fxRate;
+      totalUnrealizedPLInCAD += plInCAD;
+
+      const plStr = nativePL >= 0 ? `+$${nativePL.toFixed(2)}` : `-$${Math.abs(nativePL).toFixed(2)}`;
+      holdingNotesParts.push(`${tickerUpper} (${plStr})`);
+    }
+
+    const todayAutoPL = Math.round(totalUnrealizedPLInCAD * 100) / 100;
+    const todayAutoNote = holdingNotesParts.length > 0
+      ? `Holdings: ${holdingNotesParts.join(', ')}`
+      : 'No active holdings today';
 
     return {
       logs: logs.map((l: any) => ({
@@ -505,6 +545,8 @@ export async function getDailyLogsAction(): Promise<{ logs: DailyLog[] } | null>
         note: l.note ?? null,
         createdAt: l.createdAt,
       })),
+      todayAutoPL,
+      todayAutoNote,
     };
   } catch (error: any) {
     console.error('getDailyLogsAction error:', error);
