@@ -1,5 +1,5 @@
-import AddTradeForm from '@/components/dashboard/AddTradeForm';
-import AddDailyLogForm from '@/components/dashboard/AddDailyLogForm';
+import AddTradeForm from '@/components/dashboard/trades/AddTradeForm';
+import AddDailyLogForm from '@/components/dashboard/journal/AddDailyLogForm';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 

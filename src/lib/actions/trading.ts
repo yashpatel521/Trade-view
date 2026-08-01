@@ -91,10 +91,6 @@ async function fetchFxRate(): Promise<number> {
 
 async function fetchStockPrice(ticker: string): Promise<{ price: number; currency: string }> {
   const tickerUpper = ticker.toUpperCase().trim();
-  if (priceCache[tickerUpper] && Date.now() - priceCache[tickerUpper].timestamp < 5 * 60 * 1000) {
-    return priceCache[tickerUpper];
-  }
-
   const isCanadian = tickerUpper.endsWith('.TO') || tickerUpper.endsWith('.V') || tickerUpper.endsWith('.CN');
   const apiKey = process.env.FINNHUB_API_KEY || 'd8q0q89r01qr03nct970d8q0q89r01qr03nct97g';
 
@@ -102,7 +98,7 @@ async function fetchStockPrice(ticker: string): Promise<{ price: number; currenc
   if (!isCanadian) {
     try {
       const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(tickerUpper)}&token=${apiKey}`, {
-        next: { revalidate: 60 }
+        cache: 'no-store'
       });
       if (res.ok) {
         const data = await res.json();
@@ -127,7 +123,7 @@ async function fetchStockPrice(ticker: string): Promise<{ price: number; currenc
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       },
-      next: { revalidate: 60 }
+      cache: 'no-store'
     });
     if (res.ok) {
       const data = await res.json();
@@ -201,16 +197,26 @@ export async function addTradeAction(prevState: any, formData: FormData) {
     const shares = parseFloat(formData.get('shares') as string);
     const price = parseFloat(formData.get('price') as string);
     const date = formData.get('date') as string;
-    const currency = (formData.get('currency') as string) === 'CAD' ? 'CAD' : 'USD';
+    const isCanadian = ticker.endsWith('.TO') || ticker.endsWith('.V') || ticker.endsWith('.CN');
+    const currency: 'USD' | 'CAD' = isCanadian ? 'CAD' : 'USD';
 
     if (!ticker || !type || isNaN(shares) || shares <= 0 || isNaN(price) || price <= 0 || !date) {
       return { error: 'Invalid input. Make sure values are positive numbers.' };
     }
 
+    const driver = (process.env.DATABASE_DRIVER || '').toLowerCase();
+    const targetUsers = driver === 'postgres' ? (postgresSchema.users as any) : (users as any);
+    const targetHoldings = driver === 'postgres' ? (postgresSchema.holdings as any) : (holdings as any);
+    const targetTrades = driver === 'postgres' ? (postgresSchema.trades as any) : (trades as any);
+
     // Retrieve user for cash balance validation and updates
-    const user = await db.query.users.findFirst({
-      where: eq(users.id, userId),
-    });
+    const userRecords = await db
+      .select()
+      .from(targetUsers)
+      .where(eq(targetUsers.id, userId))
+      .limit(1);
+
+    const user = userRecords[0];
 
     if (!user) {
       return { error: 'User account not found. Please log in again.' };
@@ -222,41 +228,93 @@ export async function addTradeAction(prevState: any, formData: FormData) {
     const tradeTotalInCAD = currency === 'USD' ? tradeTotalInCurrency * fxRate : tradeTotalInCurrency;
 
     // Retrieve existing holding
-    const existingHolding = await db.query.holdings.findFirst({
-      where: and(eq(holdings.userId, userId), eq(holdings.ticker, ticker)),
-    });
+    const holdingRecords = await db
+      .select()
+      .from(targetHoldings)
+      .where(and(eq(targetHoldings.userId, userId), eq(targetHoldings.ticker, ticker)))
+      .limit(1);
+
+    const existingHolding = holdingRecords[0];
+
+    const cadBalance = typeof user.cashBalanceCad === 'number' && (user.cashBalanceCad > 0 || (user.cashBalanceUsd && user.cashBalanceUsd > 0))
+      ? user.cashBalanceCad
+      : (typeof user.cashBalance === 'number' ? user.cashBalance : 0);
+    const usdBalance = typeof user.cashBalanceUsd === 'number' ? user.cashBalanceUsd : 0;
+
+    if (currency === 'USD') {
+      if (type === 'BUY') {
+        if (usdBalance < tradeTotalInCurrency) {
+          const requiredStr = `$${tradeTotalInCurrency.toFixed(2)} USD`;
+          const availableStr = `$${usdBalance.toFixed(2)} USD`;
+          return {
+            error: `Insufficient USD account balance to buy ${shares} share(s) of ${ticker}. Required: ${requiredStr}, Available: ${availableStr}. Please add USD funds under Settings first.`
+          };
+        }
+
+        const newUsd = usdBalance - tradeTotalInCurrency;
+        await db.update(targetUsers)
+          .set({
+            cashBalanceUsd: newUsd,
+            cashBalanceCad: cadBalance,
+            cashBalance: cadBalance + (newUsd * fxRate),
+          })
+          .where(eq(targetUsers.id, userId));
+      } else { // SELL
+        const newUsd = usdBalance + tradeTotalInCurrency;
+        await db.update(targetUsers)
+          .set({
+            cashBalanceUsd: newUsd,
+            cashBalanceCad: cadBalance,
+            cashBalance: cadBalance + (newUsd * fxRate),
+          })
+          .where(eq(targetUsers.id, userId));
+      }
+    } else { // CAD
+      if (type === 'BUY') {
+        if (cadBalance < tradeTotalInCurrency) {
+          const requiredStr = `$${tradeTotalInCurrency.toFixed(2)} CAD`;
+          const availableStr = `$${cadBalance.toFixed(2)} CAD`;
+          return {
+            error: `Insufficient CAD account balance to buy ${shares} share(s) of ${ticker}. Required: ${requiredStr}, Available: ${availableStr}. Please add CAD funds under Settings first.`
+          };
+        }
+
+        const newCad = cadBalance - tradeTotalInCurrency;
+        await db.update(targetUsers)
+          .set({
+            cashBalanceCad: newCad,
+            cashBalanceUsd: usdBalance,
+            cashBalance: newCad + (usdBalance * fxRate),
+          })
+          .where(eq(targetUsers.id, userId));
+      } else { // SELL
+        const newCad = cadBalance + tradeTotalInCurrency;
+        await db.update(targetUsers)
+          .set({
+            cashBalanceCad: newCad,
+            cashBalanceUsd: usdBalance,
+            cashBalance: newCad + (usdBalance * fxRate),
+          })
+          .where(eq(targetUsers.id, userId));
+      }
+    }
 
     if (type === 'BUY') {
-      if (user.cashBalance < tradeTotalInCAD) {
-        const requiredStr = currency === 'USD' 
-          ? `$${tradeTotalInCurrency.toFixed(2)} USD (~$${tradeTotalInCAD.toFixed(2)} CAD)`
-          : `$${tradeTotalInCurrency.toFixed(2)} CAD`;
-        const availableStr = `$${user.cashBalance.toFixed(2)} CAD`;
-        return {
-          error: `Insufficient cash balance to buy ${shares} share(s) of ${ticker}. Required: ${requiredStr}, Available: ${availableStr}. Please add funds under Settings first.`
-        };
-      }
-
-      // Deduct funds from user cashBalance
-      await db.update(users)
-        .set({ cashBalance: user.cashBalance - tradeTotalInCAD })
-        .where(eq(users.id, userId));
-
       if (existingHolding) {
         // Average Price Calculation: Weighted Average
         const newShares = existingHolding.shares + shares;
         const newAvgPrice = 
           ((existingHolding.shares * existingHolding.averagePrice) + (shares * price)) / newShares;
         
-        await db.update(holdings)
+        await db.update(targetHoldings)
           .set({
             shares: newShares,
             averagePrice: newAvgPrice,
             updatedAt: new Date(),
           })
-          .where(eq(holdings.id, existingHolding.id));
+          .where(eq(targetHoldings.id, existingHolding.id));
       } else {
-        await db.insert(holdings).values({
+        await db.insert(targetHoldings).values({
           userId,
           ticker,
           shares,
@@ -271,26 +329,21 @@ export async function addTradeAction(prevState: any, formData: FormData) {
         return { error: `Cannot sell ${shares} shares of ${ticker}. You only own ${existingHolding.shares} shares.` };
       }
 
-      // Add sell proceeds to user cashBalance
-      await db.update(users)
-        .set({ cashBalance: user.cashBalance + tradeTotalInCAD })
-        .where(eq(users.id, userId));
-      
       const newShares = existingHolding.shares - shares;
-      if (newShares === 0) {
-        await db.delete(holdings).where(eq(holdings.id, existingHolding.id));
+      if (newShares <= 0.000001) {
+        await db.delete(targetHoldings).where(eq(targetHoldings.id, existingHolding.id));
       } else {
-        await db.update(holdings)
+        await db.update(targetHoldings)
           .set({
             shares: newShares,
             updatedAt: new Date(),
           })
-          .where(eq(holdings.id, existingHolding.id));
+          .where(eq(targetHoldings.id, existingHolding.id));
       }
     }
 
     // Record this individual trade
-    await db.insert(trades).values({
+    await db.insert(targetTrades).values({
       userId,
       ticker,
       type,
@@ -301,11 +354,12 @@ export async function addTradeAction(prevState: any, formData: FormData) {
     });
 
     revalidatePath('/dashboard');
+    revalidatePath('/dashboard/stocks');
+    revalidatePath(`/dashboard/stocks/${ticker}`);
     revalidatePath('/dashboard/settings');
     return { success: true };
-    return { success: true };
   } catch (error: any) {
-    console.error('Add trade error:', error);
+    console.error('Add/Sell trade error:', error);
     return { error: error.message || 'Something went wrong.' };
   }
 }
@@ -414,7 +468,11 @@ export async function getDashboardDataAction(viewCurrency: 'CAD' | 'USD' = 'CAD'
     const user = await db.query.users.findFirst({
       where: eq(users.id, userId),
     });
-    const cashBalance = user?.cashBalance ?? 0;
+
+    const cadBalance = typeof user?.cashBalanceCad === 'number' && (user?.cashBalanceCad > 0 || (user?.cashBalanceUsd && user?.cashBalanceUsd > 0))
+      ? user.cashBalanceCad
+      : (typeof user?.cashBalance === 'number' ? user.cashBalance : 0);
+    const usdBalance = typeof user?.cashBalanceUsd === 'number' ? user.cashBalanceUsd : 0;
 
     // Fetch current holdings
     const userHoldings = await db.query.holdings.findMany({
@@ -437,7 +495,8 @@ export async function getDashboardDataAction(viewCurrency: 'CAD' | 'USD' = 'CAD'
     // Resolve FX conversion factor
     const fxRate = await fetchFxRate();
     const conversionFactor = viewCurrency === 'USD' ? (1 / fxRate) : 1;
-    const cashBalanceConverted = cashBalance * conversionFactor;
+    const totalCashCad = cadBalance + (usdBalance * fxRate);
+    const cashBalanceConverted = viewCurrency === 'USD' ? totalCashCad / fxRate : totalCashCad;
 
     // Compute Holdings valuations
     let totalCostConverted = 0;
@@ -527,6 +586,8 @@ export async function getDashboardDataAction(viewCurrency: 'CAD' | 'USD' = 'CAD'
     const stats = {
       totalPortfolioValue: currentValueConverted + cashBalanceConverted,
       cashBalance: cashBalanceConverted,
+      cashBalanceCad: cadBalance,
+      cashBalanceUsd: usdBalance,
       totalCost: totalCostConverted,
       unrealizedPL,
       unrealizedPLPercent,
@@ -566,34 +627,51 @@ export async function updateFundsAction(prevState: any, formData: FormData) {
   try {
     const userIdRaw = await getUserIdOrThrow();
     const userId = Number(userIdRaw);
-    console.log(`[updateFundsAction] userId: ${userId} (${typeof userIdRaw} -> ${typeof userId})`);
 
     const amount = parseFloat(formData.get('amount') as string);
     const actionType = formData.get('actionType') as 'ADD' | 'SET';
+    const currency = (formData.get('currency') as string) === 'USD' ? 'USD' : 'CAD';
 
     if (isNaN(amount) || amount < 0) {
       return { error: 'Please enter a valid positive number.' };
     }
 
-    const user = await db.query.users.findFirst({
-      where: eq(users.id, userId),
-    });
+    const driver = (process.env.DATABASE_DRIVER || '').toLowerCase();
+    const targetUsers = driver === 'postgres' ? (postgresSchema.users as any) : (users as any);
+
+    const userRecords = await db
+      .select()
+      .from(targetUsers)
+      .where(eq(targetUsers.id, userId))
+      .limit(1);
+
+    const user = userRecords[0];
 
     if (!user) {
-      console.warn(`[updateFundsAction] User with ID ${userId} not found in database.`);
-      return { error: 'User not found. Your session may be stale due to a database reset. Please log out and log in again.' };
+      return { error: 'User not found. Please log in again.' };
     }
 
-    let newBalance = user.cashBalance;
-    if (actionType === 'ADD') {
-      newBalance += amount;
+    const fxRate = await fetchFxRate();
+    let currentCad = typeof user.cashBalanceCad === 'number' && (user.cashBalanceCad > 0 || (user.cashBalanceUsd && user.cashBalanceUsd > 0))
+      ? user.cashBalanceCad
+      : (typeof user.cashBalance === 'number' ? user.cashBalance : 0);
+    let currentUsd = typeof user.cashBalanceUsd === 'number' ? user.cashBalanceUsd : 0;
+
+    if (currency === 'USD') {
+      currentUsd = actionType === 'ADD' ? currentUsd + amount : amount;
     } else {
-      newBalance = amount;
+      currentCad = actionType === 'ADD' ? currentCad + amount : amount;
     }
 
-    await db.update(users)
-      .set({ cashBalance: newBalance })
-      .where(eq(users.id, userId));
+    const totalCashCad = currentCad + (currentUsd * fxRate);
+
+    await db.update(targetUsers)
+      .set({
+        cashBalanceCad: currentCad,
+        cashBalanceUsd: currentUsd,
+        cashBalance: totalCashCad,
+      })
+      .where(eq(targetUsers.id, userId));
 
     revalidatePath('/dashboard');
     revalidatePath('/dashboard/settings');
@@ -1613,11 +1691,37 @@ async function fetchStockPriceDetails(ticker: string): Promise<{ price: number; 
   const isCanadian = tickerUpper.endsWith('.TO') || tickerUpper.endsWith('.V') || tickerUpper.endsWith('.CN');
   const apiKey = process.env.FINNHUB_API_KEY || 'd8q0q89r01qr03nct970d8q0q89r01qr03nct97g';
 
-  // 1. For US stocks, Finnhub API is primary
+  // 1. Primary: Yahoo Finance v8 2D chart provides exact regularMarketPrice & true 24h previousClose
+  try {
+    const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(tickerUpper)}?interval=1d&range=2d`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      },
+      cache: 'no-store'
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const meta = data?.chart?.result?.[0]?.meta;
+      const closes = data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close?.filter((x: any) => typeof x === 'number' && x > 0);
+
+      if (meta && typeof meta.regularMarketPrice === 'number' && meta.regularMarketPrice > 0) {
+        const currentPrice = meta.regularMarketPrice;
+        const prevClose = meta.chartPreviousClose || meta.previousClose || (closes && closes.length > 1 ? closes[closes.length - 2] : currentPrice);
+        const dayChange = currentPrice - prevClose;
+        const dayChangePercent = prevClose > 0 ? (dayChange / prevClose) * 100 : 0;
+        const currency = meta.currency ? meta.currency.toUpperCase() : (isCanadian ? 'CAD' : 'USD');
+        return { price: currentPrice, currency, dayChange, dayChangePercent };
+      }
+    }
+  } catch (err) {
+    console.error(`Failed to fetch stock price details for ${tickerUpper} from Yahoo:`, err);
+  }
+
+  // 2. Secondary: Finnhub API for US stocks
   if (!isCanadian) {
     try {
       const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(tickerUpper)}&token=${apiKey}`, {
-        next: { revalidate: 60 }
+        cache: 'no-store'
       });
       if (res.ok) {
         const data = await res.json();
@@ -1633,36 +1737,12 @@ async function fetchStockPriceDetails(ticker: string): Promise<{ price: number; 
     }
   }
 
-  // 2. For Canadian TSX stocks or US fallback, Yahoo Finance v8 provides accurate native CAD/USD price
-  try {
-    const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(tickerUpper)}?interval=1d&range=1d`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      },
-      next: { revalidate: 60 }
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const meta = data?.chart?.result?.[0]?.meta;
-      if (meta && typeof meta.regularMarketPrice === 'number' && meta.regularMarketPrice > 0) {
-        const currentPrice = meta.regularMarketPrice;
-        const prevClose = meta.chartPreviousClose || meta.previousClose || currentPrice;
-        const dayChange = currentPrice - prevClose;
-        const dayChangePercent = prevClose > 0 ? (dayChange / prevClose) * 100 : 0;
-        const currency = meta.currency ? meta.currency.toUpperCase() : (isCanadian ? 'CAD' : 'USD');
-        return { price: currentPrice, currency, dayChange, dayChangePercent };
-      }
-    }
-  } catch (err) {
-    console.error(`Failed to fetch stock price details for ${tickerUpper} from Yahoo:`, err);
-  }
-
   const basePrice = await fetchStockPrice(tickerUpper);
   return {
     price: basePrice.price,
     currency: basePrice.currency,
-    dayChange: basePrice.price * 0.012,
-    dayChangePercent: 1.2,
+    dayChange: 0,
+    dayChangePercent: 0,
   };
 }
 

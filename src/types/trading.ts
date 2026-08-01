@@ -42,6 +42,8 @@ export interface DailyLog {
 export interface DashboardStats {
   totalPortfolioValue: number;
   cashBalance: number;
+  cashBalanceCad: number;
+  cashBalanceUsd: number;
   totalCost: number;
   unrealizedPL: number;
   unrealizedPLPercent: number;
@@ -81,6 +83,8 @@ export interface PublicPortfolio {
   email: string;
   totalPortfolioValue: number;
   cashBalance: number;
+  cashBalanceCad?: number;
+  cashBalanceUsd?: number;
   holdingsCount: number;
   holdingsSummary: string[];
 }
@@ -95,6 +99,8 @@ export interface PublicPortfolioDetails {
   stats: {
     totalPortfolioValue: number;
     cashBalance: number;
+    cashBalanceCad?: number;
+    cashBalanceUsd?: number;
     totalCost: number;
     unrealizedPL: number;
     unrealizedPLPercent: number;

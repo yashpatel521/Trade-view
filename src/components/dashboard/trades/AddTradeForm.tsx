@@ -22,14 +22,21 @@ export const AddTradeForm: React.FC = () => {
   const [shares, setShares] = useState<string>('');
   const [price, setPrice] = useState<string>('');
 
-  // Auto-detect from ticker (TSX stocks ending in .TO are CAD, otherwise USD)
-  const handleTickerBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    const val = e.target.value.toUpperCase().trim();
-    if (val.endsWith('.TO') || val.endsWith('.V') || val.endsWith('.CN')) {
+  const [tickerInput, setTickerInput] = useState<string>('');
+
+  const updateCurrencyFromTicker = (val: string) => {
+    const clean = val.toUpperCase().trim();
+    if (clean.endsWith('.TO') || clean.endsWith('.V') || clean.endsWith('.CN')) {
       setCurrency('CAD');
-    } else if (val.length > 0) {
+    } else {
       setCurrency('USD');
     }
+  };
+
+  const handleTickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setTickerInput(val);
+    updateCurrencyFromTicker(val);
   };
 
   const calculatedTotal = (parseFloat(shares) || 0) * (parseFloat(price) || 0);
@@ -39,7 +46,7 @@ export const AddTradeForm: React.FC = () => {
       <div className="mb-5">
         <h3 className="text-sm font-semibold text-white">Add Trade</h3>
         <p className="text-xs text-neutral-500 mt-0.5">
-          Buying deducts from your cash balance; selling credits your cash balance.
+          US stocks automatically use USD Account; Canadian stocks (.TO) use CAD Account.
         </p>
       </div>
 
@@ -51,7 +58,8 @@ export const AddTradeForm: React.FC = () => {
             name="ticker"
             placeholder="AAPL / RY.TO"
             required
-            onBlur={handleTickerBlur}
+            value={tickerInput}
+            onChange={handleTickerChange}
           />
           <div className="w-full flex flex-col gap-1.5">
             <label className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Type</label>
@@ -73,9 +81,9 @@ export const AddTradeForm: React.FC = () => {
             label="Shares"
             name="shares"
             type="number"
-            placeholder="0"
+            placeholder="e.g. 0.123"
             required
-            min="1"
+            min="0.000001"
             step="any"
             value={shares}
             onChange={(e) => setShares(e.target.value)}
@@ -86,7 +94,7 @@ export const AddTradeForm: React.FC = () => {
             type="number"
             placeholder="0.00"
             required
-            min="0"
+            min="0.000001"
             step="any"
             value={price}
             onChange={(e) => setPrice(e.target.value)}

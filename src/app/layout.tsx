@@ -16,7 +16,9 @@ export const metadata: Metadata = {
   title: "Trade View - Portfolio Tracker & Community",
   description: "A premium Wealthsimple-style portfolio tracker and community leaderboard.",
   icons: {
-    icon: "/favicon.svg",
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
   },
 };
 

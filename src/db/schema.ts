@@ -8,6 +8,8 @@ export const users = sqliteTable('users', {
   passwordHash: text('password_hash').notNull(),
   role: text('role', { enum: ['admin', 'user'] }).default('user').notNull(),
   cashBalance: real('cash_balance').default(0).notNull(),
+  cashBalanceCad: real('cash_balance_cad').default(0).notNull(),
+  cashBalanceUsd: real('cash_balance_usd').default(0).notNull(),
   isPublic: integer('is_public', { mode: 'boolean' }).default(true).notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' })
     .default(sql`(strftime('%s', 'now') * 1000)`)

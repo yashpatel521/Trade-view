@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import DashboardCharts from '@/components/dashboard/DashboardCharts';
-import JournalCalendar from '@/components/dashboard/JournalCalendar';
+import DashboardCharts from '@/components/dashboard/overview/DashboardCharts';
+import JournalCalendar from '@/components/dashboard/journal/JournalCalendar';
 import { Card } from '@/components/ui/Card';
 import {
   ArrowUpRight,
@@ -18,7 +18,8 @@ import {
 } from 'lucide-react';
 import { DashboardData, Holding } from '@/types/trading';
 import { useCurrencyStore } from '@/lib/store';
-import SellModal from '@/components/dashboard/SellModal';
+import SellModal from '@/components/dashboard/stocks/SellModal';
+import { StockLogo } from '@/components/ui/StockLogo';
 
 interface DashboardClientProps {
   data: DashboardData;
@@ -85,12 +86,17 @@ export default function DashboardClient({ data }: DashboardClientProps) {
 
             {/* Right – cash + quick stats */}
             <div className="flex gap-3 flex-wrap sm:flex-nowrap">
-              <div className="flex flex-col justify-between bg-[#0a0a0a] border border-[#222] rounded-xl px-4 py-3 min-w-32.5">
-                <div className="flex items-center gap-2 mb-2">
-                  <Wallet className="h-3.5 w-3.5 text-neutral-500" />
-                  <span className="text-[10px] text-neutral-500 uppercase tracking-wider font-semibold">Available Cash</span>
+              <div className="flex flex-col justify-between bg-[#0a0a0a] border border-[#222] rounded-xl px-4 py-3 min-w-44">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-1.5">
+                    <Wallet className="h-3.5 w-3.5 text-emerald-400" />
+                    <span className="text-[10px] text-neutral-500 uppercase tracking-wider font-semibold">Available Cash</span>
+                  </div>
                 </div>
-                <p className="text-lg font-bold text-white">{fmt(stats.cashBalance)}</p>
+                <div className="flex items-center gap-3 text-xs font-bold mt-1">
+                  <span className="text-emerald-400" title="CAD Cash Balance">🇨🇦 ${(stats.cashBalanceCad ?? 0).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span className="text-blue-400" title="USD Cash Balance">🇺🇸 ${(stats.cashBalanceUsd ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
               </div>
               <div className="flex flex-col justify-between bg-[#0a0a0a] border border-[#222] rounded-xl px-4 py-3 min-w-32.5">
                 <div className="flex items-center gap-2 mb-2">
@@ -204,9 +210,7 @@ export default function DashboardClient({ data }: DashboardClientProps) {
                       {/* Ticker */}
                       <td className="py-4 px-5">
                         <div className="flex items-center gap-2.5">
-                          <div className="h-8 w-8 rounded-lg bg-neutral-800 border border-neutral-700 flex items-center justify-center text-[10px] font-black text-white shrink-0">
-                            {h.ticker.replace('.TO', '').replace('.V', '').slice(0, 3)}
-                          </div>
+                          <StockLogo ticker={h.ticker} size={32} />
                           <div>
                             <Link
                               href={`/dashboard/stocks/${encodeURIComponent(h.ticker)}`}

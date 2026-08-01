@@ -7,6 +7,8 @@ export const users = pgTable('users', {
   passwordHash: text('password_hash').notNull(),
   role: text('role').default('user').notNull(),
   cashBalance: doublePrecision('cash_balance').default(0).notNull(),
+  cashBalanceCad: doublePrecision('cash_balance_cad').default(0).notNull(),
+  cashBalanceUsd: doublePrecision('cash_balance_usd').default(0).notNull(),
   isPublic: boolean('is_public').default(true).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });

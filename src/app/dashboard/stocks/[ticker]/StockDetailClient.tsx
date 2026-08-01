@@ -7,12 +7,13 @@ import { Holding, Trade } from '@/types/trading';
 import { useCurrencyStore } from '@/lib/store';
 import { toggleWatchlistAction, isInWatchlistAction } from '@/lib/actions/trading';
 import { ArrowLeft, ArrowUpRight, ArrowDownRight, Plus, TrendingDown, DollarSign, TrendingUp, History, Bookmark, Loader2 } from 'lucide-react';
-import SellModal from '@/components/dashboard/SellModal';
-import StockPriceChart from '@/components/dashboard/StockPriceChart';
-import MarketDetailsCard from '@/components/dashboard/MarketDetailsCard';
-import StockNewsCard from '@/components/dashboard/StockNewsCard';
-import StrategyForecastCard from '@/components/dashboard/StrategyForecastCard';
-import StrategyComparisonTable from '@/components/dashboard/StrategyComparisonTable';
+import SellModal from '@/components/dashboard/stocks/SellModal';
+import StockPriceChart from '@/components/dashboard/stocks/StockPriceChart';
+import MarketDetailsCard from '@/components/dashboard/stocks/MarketDetailsCard';
+import StockNewsCard from '@/components/dashboard/stocks/StockNewsCard';
+import StrategyForecastCard from '@/components/dashboard/stocks/StrategyForecastCard';
+import StrategyComparisonTable from '@/components/dashboard/stocks/StrategyComparisonTable';
+import { StockLogo } from '@/components/ui/StockLogo';
 
 interface StockDetailClientProps {
   ticker: string;
@@ -32,83 +33,9 @@ export default function StockDetailClient({ ticker, holding, trades, fxRate, isA
 
   const initialLivePrice = holding?.nativeCurrentPrice ?? holding?.currentPrice ?? 0;
   const [livePrice, setLivePrice] = useState<number>(initialLivePrice);
-  const [isWebSocketActive, setIsWebSocketActive] = useState<boolean>(false);
-  const [priceFlash, setPriceFlash] = useState<'up' | 'down' | null>(null);
-  const prevPriceRef = React.useRef<number>(initialLivePrice);
 
   useEffect(() => {
     isInWatchlistAction(tickerUpper).then(setIsPinned);
-  }, [tickerUpper]);
-
-  useEffect(() => {
-    setLivePrice(initialLivePrice);
-    prevPriceRef.current = initialLivePrice;
-  }, [initialLivePrice]);
-
-  // Finnhub Live WebSocket Stream for stock price
-  useEffect(() => {
-    const isCanadian = tickerUpper.endsWith('.TO') || tickerUpper.endsWith('.V') || tickerUpper.endsWith('.CN');
-    if (isCanadian) {
-      setIsWebSocketActive(false);
-      return;
-    }
-
-    const cleanTicker = tickerUpper.replace(/\.(TO|V|CN)$/i, '');
-    const apiKey = 'd8q0q89r01qr03nct970d8q0q89r01qr03nct97g';
-    let socket: WebSocket | null = null;
-
-    try {
-      socket = new WebSocket(`wss://ws.finnhub.io?token=${apiKey}`);
-
-      socket.onopen = () => {
-        if (socket?.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify({ type: 'subscribe', symbol: cleanTicker }));
-          setIsWebSocketActive(true);
-        }
-      };
-
-      socket.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data);
-          if (msg && msg.type === 'trade' && Array.isArray(msg.data) && msg.data.length > 0) {
-            const lastTrade = msg.data[msg.data.length - 1];
-            if (typeof lastTrade.p === 'number' && lastTrade.p > 0) {
-              const newPrice = parseFloat(lastTrade.p.toFixed(2));
-              if (prevPriceRef.current > 0 && newPrice !== prevPriceRef.current) {
-                setPriceFlash(newPrice > prevPriceRef.current ? 'up' : 'down');
-                setTimeout(() => setPriceFlash(null), 1000);
-              }
-              prevPriceRef.current = newPrice;
-              setLivePrice(newPrice);
-            }
-          }
-        } catch (err) {
-          // Silent fallback for non-trade messages
-        }
-      };
-
-      socket.onerror = () => {
-        // Silently mark inactive on error to prevent noisy console logs
-        setIsWebSocketActive(false);
-      };
-
-      socket.onclose = () => {
-        setIsWebSocketActive(false);
-      };
-    } catch (err) {
-      setIsWebSocketActive(false);
-    }
-
-    return () => {
-      if (socket) {
-        if (socket.readyState === WebSocket.OPEN) {
-          try {
-            socket.send(JSON.stringify({ type: 'unsubscribe', symbol: cleanTicker }));
-          } catch (e) {}
-        }
-        socket.close();
-      }
-    };
   }, [tickerUpper]);
 
   const handleToggleWatchlist = async () => {
@@ -154,9 +81,7 @@ export default function StockDetailClient({ ticker, holding, trades, fxRate, isA
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span className="text-3xl font-black text-white bg-neutral-800 px-3.5 py-1.5 rounded-xl border border-neutral-700">
-              {tickerUpper}
-            </span>
+            <StockLogo ticker={tickerUpper} size={44} />
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-bold text-white tracking-tight">{tickerUpper}</h2>
@@ -169,27 +94,8 @@ export default function StockDetailClient({ ticker, holding, trades, fxRate, isA
               {displayPrice > 0 && (
                 <div className="flex items-center gap-2.5 mt-1">
                   <p className="text-sm font-semibold text-neutral-300">
-                    Live Price:{' '}
-                    <span className={`font-bold transition-colors ${
-                      priceFlash === 'up'
-                        ? 'text-emerald-400'
-                        : priceFlash === 'down'
-                        ? 'text-red-400'
-                        : 'text-white'
-                    }`}>
-                      {fmtNative(displayPrice)}
-                    </span>
+                    Live Price: <span className="font-bold text-white">{fmtNative(displayPrice)}</span>
                   </p>
-
-                  {isWebSocketActive && (
-                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                      </span>
-                      Live WebSocket
-                    </span>
-                  )}
                 </div>
               )}
             </div>
@@ -235,8 +141,8 @@ export default function StockDetailClient({ ticker, holding, trades, fxRate, isA
         </div>
       </div>
 
-      {/* Position Metrics Cards Grid */}
-      {holding ? (
+      {/* Position Metrics Cards Grid (Rendered only when user has active position) */}
+      {holding && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Shares Owned */}
           <div className="bg-[#141414] border border-[#222] rounded-xl p-5 flex flex-col justify-between">
@@ -287,10 +193,6 @@ export default function StockDetailClient({ ticker, holding, trades, fxRate, isA
               </span>
             </p>
           </div>
-        </div>
-      ) : (
-        <div className="p-6 rounded-xl bg-[#141414] border border-[#222] text-center text-xs text-neutral-500">
-          You currently do not hold an active position in <span className="font-semibold text-white">{tickerUpper}</span>.
         </div>
       )}
 

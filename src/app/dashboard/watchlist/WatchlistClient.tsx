@@ -9,6 +9,7 @@ import { addToWatchlistAction, removeFromWatchlistAction } from '@/lib/actions/t
 import { Bookmark, Plus, Trash2, TrendingUp, TrendingDown, ExternalLink, Search, Loader2, ArrowRight } from 'lucide-react';
 
 import { StockSearchAutocomplete } from '@/components/layout/StockSearchAutocomplete';
+import { StockLogo } from '@/components/ui/StockLogo';
 
 interface WatchlistClientProps {
   initialItems: WatchlistItem[];
@@ -47,14 +48,16 @@ export function WatchlistClient({ initialItems, liveFxRate }: WatchlistClientPro
     setRemovingTicker(null);
   };
 
-  const formatPrice = (nativePrice: number, nativeCurrency: 'USD' | 'CAD') => {
+  const formatPrice = (nativePrice: number, nativeCurrency: 'USD' | 'CAD', ticker?: string) => {
     const formatted = nativePrice.toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
 
-    if (nativeCurrency === 'CAD') {
-      return `CA$${formatted} CAD`;
+    const isCad = nativeCurrency === 'CAD' || (ticker && (ticker.toUpperCase().endsWith('.TO') || ticker.toUpperCase().endsWith('.V') || ticker.toUpperCase().endsWith('.CN')));
+
+    if (isCad) {
+      return `$${formatted} CAD`;
     }
     return `$${formatted} USD`;
   };
@@ -104,10 +107,8 @@ export function WatchlistClient({ initialItems, liveFxRate }: WatchlistClientPro
               <thead>
                 <tr className="border-b border-[#222] text-neutral-400 font-semibold uppercase tracking-wider bg-[#141414]">
                   <th className="py-3.5 px-4 font-bold text-white">Stock</th>
-                  <th className="py-3.5 px-4">Market Currency</th>
                   <th className="py-3.5 px-4">Live Market Price</th>
                   <th className="py-3.5 px-4">24h Day Change</th>
-                  <th className="py-3.5 px-4">Added Date</th>
                   <th className="py-3.5 px-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -125,48 +126,42 @@ export function WatchlistClient({ initialItems, liveFxRate }: WatchlistClientPro
                           href={`/dashboard/stocks/${item.ticker}`}
                           className="inline-flex items-center gap-2 text-sm hover:text-emerald-400 transition-colors"
                         >
-                          <TrendingUp className="h-4 w-4 text-emerald-400" />
+                          <StockLogo ticker={item.ticker} size={28} />
                           <span className="text-base font-extrabold tracking-wide">{item.ticker}</span>
                           <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-neutral-500" />
                         </Link>
                       </td>
 
-                      {/* Native Currency Badge */}
-                      <td className="py-4 px-4">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-neutral-800 border border-neutral-700 text-neutral-300">
-                          {item.nativeCurrency === 'CAD' ? '🇨🇦 CAD' : '🇺🇸 USD'}
-                        </span>
-                      </td>
-
                       {/* Live Price Converted */}
                       <td className="py-4 px-4 font-bold text-sm text-white">
-                        {formatPrice(item.nativeCurrentPrice, item.nativeCurrency)}
+                        {formatPrice(item.nativeCurrentPrice, item.nativeCurrency, item.ticker)}
                       </td>
 
                       {/* 24h Day Change */}
                       <td className="py-4 px-4 font-semibold">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold ${
-                            isPositive
-                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                              : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                          }`}
-                        >
-                          {isPositive ? (
-                            <TrendingUp className="h-3.5 w-3.5" />
-                          ) : (
-                            <TrendingDown className="h-3.5 w-3.5" />
-                          )}
-                          <span>
-                            {isPositive ? '+' : ''}
-                            {item.dayChange.toFixed(2)} ({isPositive ? '+' : ''}
-                            {item.dayChangePercent.toFixed(2)}%)
-                          </span>
-                        </span>
+                        {(() => {
+                          const absChange = Math.abs(item.dayChange);
+                          const absPct = Math.abs(item.dayChangePercent);
+                          return (
+                            <span
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold ${
+                                isPositive
+                                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                  : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                              }`}
+                            >
+                              {isPositive ? (
+                                <TrendingUp className="h-3.5 w-3.5" />
+                              ) : (
+                                <TrendingDown className="h-3.5 w-3.5" />
+                              )}
+                              <span>
+                                {isPositive ? '+' : '-'}${absChange.toFixed(2)} ({isPositive ? '+' : '-'}{absPct.toFixed(2)}%)
+                              </span>
+                            </span>
+                          );
+                        })()}
                       </td>
-
-                      {/* Added Date */}
-                      <td className="py-4 px-4 text-neutral-400 text-xs">{item.addedAt}</td>
 
                       {/* Actions */}
                       <td className="py-4 px-4 text-right">

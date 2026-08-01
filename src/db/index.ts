@@ -109,6 +109,9 @@ export async function ensureTablesAndAdminSeeded() {
           candle_data TEXT NOT NULL,
           updated_at TIMESTAMP NOT NULL DEFAULT NOW()
         );
+
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS cash_balance_cad DOUBLE PRECISION NOT NULL DEFAULT 0;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS cash_balance_usd DOUBLE PRECISION NOT NULL DEFAULT 0;
       `);
       console.log('[Auto-Initializer] PostgreSQL tables verified/created successfully.');
     } else if (driver === 'sqlite' && sqliteClientInstance) {
@@ -121,10 +124,15 @@ export async function ensureTablesAndAdminSeeded() {
           password_hash TEXT NOT NULL,
           role TEXT NOT NULL DEFAULT 'user',
           cash_balance REAL NOT NULL DEFAULT 0,
+          cash_balance_cad REAL NOT NULL DEFAULT 0,
+          cash_balance_usd REAL NOT NULL DEFAULT 0,
           is_public INTEGER NOT NULL DEFAULT 1,
           created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000)
         );
       `);
+
+      try { await sqliteClientInstance.execute(`ALTER TABLE users ADD COLUMN cash_balance_cad REAL NOT NULL DEFAULT 0;`); } catch (e) {}
+      try { await sqliteClientInstance.execute(`ALTER TABLE users ADD COLUMN cash_balance_usd REAL NOT NULL DEFAULT 0;`); } catch (e) {}
       await sqliteClientInstance.execute(`
         CREATE TABLE IF NOT EXISTS holdings (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -209,10 +217,21 @@ export async function ensureTablesAndAdminSeeded() {
         passwordHash,
         role: 'admin',
         cashBalance: 10000,
+        cashBalanceCad: 10000,
+        cashBalanceUsd: 5000,
         isPublic: true,
       });
       console.log('[Auto-Seeder] Default admin user successfully seeded!');
     } else {
+      // Migrate existing admin/users if cashBalanceCad or cashBalanceUsd are 0
+      if ((!existingAdmin.cashBalanceCad || existingAdmin.cashBalanceCad === 0) && (!existingAdmin.cashBalanceUsd || existingAdmin.cashBalanceUsd === 0) && existingAdmin.cashBalance > 0) {
+        await db.update(targetTable)
+          .set({
+            cashBalanceCad: existingAdmin.cashBalance,
+            cashBalanceUsd: 5000,
+          })
+          .where(eq(targetTable.id, existingAdmin.id));
+      }
       console.log('[Auto-Seeder] Default admin user verified.');
     }
   } catch (error) {

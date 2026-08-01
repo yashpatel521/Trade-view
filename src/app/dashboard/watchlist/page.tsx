@@ -1,6 +1,9 @@
 import { getWatchlistAction, getFxRateAction } from '@/lib/actions/trading';
 import { WatchlistClient } from './WatchlistClient';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export const metadata = {
   title: 'Stock Watchlist | Trade-View',
   description: 'Track your pinned equities with real-time price updates and native currency conversions.',

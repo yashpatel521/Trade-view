@@ -1,9 +1,27 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { TrendingUp, LayoutDashboard, Layers, PlusCircle, Settings, Users, FileText, History, Bookmark, BookOpen } from 'lucide-react';
+import {
+  TrendingUp,
+  LayoutDashboard,
+  Layers,
+  PlusCircle,
+  Settings,
+  Users,
+  FileText,
+  History,
+  Bookmark,
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
+  Briefcase,
+  Sparkles,
+  CandlestickChart,
+  Star,
+} from 'lucide-react';
+import { TradeViewLogo } from '@/components/ui/TradeViewLogo';
 
 interface SidebarProps {
   isAdmin?: boolean;
@@ -11,6 +29,20 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
   const pathname = usePathname();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('sidebar_collapsed');
+    if (saved !== null) {
+      setIsCollapsed(saved === 'true');
+    }
+  }, []);
+
+  const toggleCollapse = () => {
+    const next = !isCollapsed;
+    setIsCollapsed(next);
+    localStorage.setItem('sidebar_collapsed', String(next));
+  };
 
   const isDashboardActive = pathname === '/dashboard';
   const isStocksActive = pathname === '/dashboard/stocks';
@@ -23,147 +55,194 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
   const isAddActive = pathname === '/dashboard/add';
   const isSettingsActive = pathname === '/dashboard/settings';
 
+  const navItems = [
+    {
+      href: '/dashboard',
+      label: 'Dashboard',
+      icon: LayoutDashboard,
+      active: isDashboardActive,
+      iconColor: isDashboardActive ? 'text-white' : 'text-neutral-500',
+    },
+    {
+      href: '/dashboard/stocks',
+      label: 'Stocks',
+      icon: Layers,
+      active: isStocksActive,
+      iconColor: isStocksActive ? 'text-white' : 'text-neutral-500',
+    },
+    {
+      href: '/dashboard/watchlist',
+      label: 'Watchlist',
+      icon: Bookmark,
+      active: isWatchlistActive,
+      iconColor: isWatchlistActive ? 'text-white' : 'text-neutral-500',
+    },
+    {
+      href: '/dashboard/journal',
+      label: 'Journal',
+      icon: BookOpen,
+      active: isJournalActive,
+      iconColor: isJournalActive ? 'text-blue-400' : 'text-neutral-500',
+    },
+  ];
+
+  const adminItems = [
+    {
+      href: '/dashboard/users',
+      label: 'Users',
+      icon: Users,
+      active: isUsersActive,
+      iconColor: isUsersActive ? 'text-amber-400' : 'text-neutral-500',
+    },
+    {
+      href: '/dashboard/weekly-report',
+      label: 'Weekly Report',
+      icon: FileText,
+      active: isWeeklyReportActive,
+      iconColor: isWeeklyReportActive ? 'text-white' : 'text-neutral-500',
+      badge: 'AI',
+    },
+    {
+      href: '/dashboard/report-history',
+      label: 'Report History',
+      icon: History,
+      active: isHistoryActive,
+      iconColor: isHistoryActive ? 'text-white' : 'text-neutral-500',
+    },
+  ];
+
+  const bottomItems = [
+    {
+      href: '/dashboard/portfolios',
+      label: 'Portfolios',
+      icon: Briefcase,
+      active: isPortfoliosActive,
+      iconColor: isPortfoliosActive ? 'text-white' : 'text-neutral-500',
+    },
+    {
+      href: '/dashboard/add',
+      label: 'Add Record',
+      icon: PlusCircle,
+      active: isAddActive,
+      iconColor: isAddActive ? 'text-white' : 'text-neutral-500',
+    },
+    {
+      href: '/dashboard/settings',
+      label: 'Settings',
+      icon: Settings,
+      active: isSettingsActive,
+      iconColor: isSettingsActive ? 'text-white' : 'text-neutral-500',
+    },
+  ];
+
   return (
-    <aside className="w-60 border-r border-[#1a1a1a] bg-[#0a0a0a] flex flex-col h-full sticky top-0">
-      {/* Brand */}
-      <div className="h-16 flex items-center px-6 border-b border-[#1a1a1a] gap-2.5">
-        <TrendingUp className="h-5 w-5 text-white" />
-        <span className="font-bold text-base text-white tracking-tight">
-          Trade View
-        </span>
+    <aside
+      className={`${
+        isCollapsed ? 'w-16' : 'w-60'
+      } border-r border-[#1a1a1a] bg-[#0a0a0a] flex flex-col h-full sticky top-0 transition-all duration-300 select-none shrink-0`}
+    >
+      {/* Brand Header & Toggle */}
+      <div
+        className={`h-16 flex items-center border-b border-[#1a1a1a] transition-all duration-300 ${
+          isCollapsed ? 'justify-center px-2' : 'justify-between px-5'
+        }`}
+      >
+        <TradeViewLogo showText={!isCollapsed} size={22} />
+
+        <button
+          type="button"
+          onClick={toggleCollapse}
+          className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer shrink-0"
+          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-5 px-3 flex flex-col gap-1">
-        <Link
-          href="/dashboard"
-          className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-            isDashboardActive 
-              ? 'text-white bg-neutral-800' 
-              : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50'
-          }`}
-        >
-          <LayoutDashboard className={`h-4 w-4 ${isDashboardActive ? 'text-white' : 'text-neutral-500'}`} />
-          Dashboard
-        </Link>
+      <nav className="flex-1 py-5 px-2 flex flex-col gap-1 overflow-y-auto overflow-x-hidden">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              title={isCollapsed ? item.label : undefined}
+              className={`flex items-center gap-3 rounded-lg text-sm font-medium transition-colors ${
+                isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5'
+              } ${
+                item.active
+                  ? 'text-white bg-neutral-800'
+                  : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50'
+              }`}
+            >
+              <Icon className={`h-4 w-4 shrink-0 ${item.iconColor}`} />
+              {!isCollapsed && <span>{item.label}</span>}
+            </Link>
+          );
+        })}
 
-        <Link
-          href="/dashboard/stocks"
-          className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-            isStocksActive 
-              ? 'text-white bg-neutral-800' 
-              : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50'
-          }`}
-        >
-          <Layers className={`h-4 w-4 ${isStocksActive ? 'text-white' : 'text-neutral-500'}`} />
-          Stocks
-        </Link>
-
-        <Link
-          href="/dashboard/watchlist"
-          className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-            isWatchlistActive 
-              ? 'text-white bg-neutral-800' 
-              : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50'
-          }`}
-        >
-          <Bookmark className={`h-4 w-4 ${isWatchlistActive ? 'text-white' : 'text-neutral-500'}`} />
-          Watchlist
-        </Link>
-
-        <Link
-          href="/dashboard/journal"
-          className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-            isJournalActive 
-              ? 'text-white bg-neutral-800' 
-              : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50'
-          }`}
-        >
-          <BookOpen className={`h-4 w-4 ${isJournalActive ? 'text-blue-400' : 'text-neutral-500'}`} />
-          Journal
-        </Link>
-
-        {/* Admin Only: Weekly Report, History & Users */}
+        {/* Admin Section */}
         {isAdmin && (
           <>
-            <Link
-              href="/dashboard/users"
-              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isUsersActive 
-                  ? 'text-white bg-neutral-800' 
-                  : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50'
-              }`}
-            >
-              <Users className={`h-4 w-4 ${isUsersActive ? 'text-amber-400' : 'text-neutral-500'}`} />
-              <span>Users</span>
-            </Link>
-
-            <Link
-              href="/dashboard/weekly-report"
-              className={`flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isWeeklyReportActive 
-                  ? 'text-white bg-neutral-800' 
-                  : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <FileText className={`h-4 w-4 ${isWeeklyReportActive ? 'text-white' : 'text-neutral-500'}`} />
-                <span>Weekly Report</span>
+            {!isCollapsed && (
+              <div className="mt-3 mb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-neutral-600">
+                Admin
               </div>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                AI
-              </span>
-            </Link>
-
-            <Link
-              href="/dashboard/report-history"
-              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isHistoryActive 
-                  ? 'text-white bg-neutral-800' 
-                  : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50'
-              }`}
-            >
-              <History className={`h-4 w-4 ${isHistoryActive ? 'text-white' : 'text-neutral-500'}`} />
-              Report History
-            </Link>
+            )}
+            {adminItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  title={isCollapsed ? item.label : undefined}
+                  className={`flex items-center gap-3 rounded-lg text-sm font-medium transition-colors ${
+                    isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5 justify-between'
+                  } ${
+                    item.active
+                      ? 'text-white bg-neutral-800'
+                      : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Icon className={`h-4 w-4 shrink-0 ${item.iconColor}`} />
+                    {!isCollapsed && <span className="truncate">{item.label}</span>}
+                  </div>
+                  {!isCollapsed && item.badge && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
           </>
         )}
 
-        <Link
-          href="/dashboard/portfolios"
-          className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-            isPortfoliosActive 
-              ? 'text-white bg-neutral-800' 
-              : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50'
-          }`}
-        >
-          <Users className={`h-4 w-4 ${isPortfoliosActive ? 'text-white' : 'text-neutral-500'}`} />
-          Portfolios
-        </Link>
-
-        <Link
-          href="/dashboard/add"
-          className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-            isAddActive 
-              ? 'text-white bg-neutral-800' 
-              : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50'
-          }`}
-        >
-          <PlusCircle className={`h-4 w-4 ${isAddActive ? 'text-white' : 'text-neutral-500'}`} />
-          Add Record
-        </Link>
-
-        <Link
-          href="/dashboard/settings"
-          className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-            isSettingsActive 
-              ? 'text-white bg-neutral-800' 
-              : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50'
-          }`}
-        >
-          <Settings className={`h-4 w-4 ${isSettingsActive ? 'text-white' : 'text-neutral-500'}`} />
-          Settings
-        </Link>
+        {/* Bottom Menu Items */}
+        <div className="mt-auto pt-4 flex flex-col gap-1 border-t border-neutral-900">
+          {bottomItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                title={isCollapsed ? item.label : undefined}
+                className={`flex items-center gap-3 rounded-lg text-sm font-medium transition-colors ${
+                  isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5'
+                } ${
+                  item.active
+                    ? 'text-white bg-neutral-800'
+                    : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50'
+                }`}
+              >
+                <Icon className={`h-4 w-4 shrink-0 ${item.iconColor}`} />
+                {!isCollapsed && <span>{item.label}</span>}
+              </Link>
+            );
+          })}
+        </div>
       </nav>
     </aside>
   );

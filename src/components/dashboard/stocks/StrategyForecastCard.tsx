@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { StrategyPrediction, StrategyMetric } from '@/types/trading';
 import { getStrategyPredictionsAction, rescanStockStrategyAction } from '@/lib/actions/trading';
 import { BrainCircuit, TrendingUp, TrendingDown, Minus, Target, ShieldAlert, Clock, Loader2, Sparkles, Activity, RotateCw, Database, Eye, Layers } from 'lucide-react';
-import PatternVisualizerModal from '@/components/dashboard/PatternVisualizerModal';
+import PatternVisualizerModal from '@/components/dashboard/stocks/PatternVisualizerModal';
 
 interface StrategyForecastCardProps {
   ticker: string;

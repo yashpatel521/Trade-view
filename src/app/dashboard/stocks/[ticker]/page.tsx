@@ -2,6 +2,9 @@ import { getDashboardDataAction } from '@/lib/actions/trading';
 import { getSession } from '@/lib/session';
 import StockDetailClient from './StockDetailClient';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 interface StockDetailPageProps {
   params: Promise<{ ticker: string }>;
 }

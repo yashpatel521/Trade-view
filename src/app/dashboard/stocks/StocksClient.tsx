@@ -6,7 +6,8 @@ import { Card } from '@/components/ui/Card';
 import { DashboardData, Holding } from '@/types/trading';
 import { useCurrencyStore } from '@/lib/store';
 import { Search, Plus, PieChart, TrendingDown } from 'lucide-react';
-import SellModal from '@/components/dashboard/SellModal';
+import SellModal from '@/components/dashboard/stocks/SellModal';
+import { StockLogo } from '@/components/ui/StockLogo';
 
 interface StocksClientProps {
   data: DashboardData;
@@ -175,7 +176,8 @@ export default function StocksClient({ data }: StocksClientProps) {
                     return (
                       <tr key={h.id} className="hover:bg-[#1a1a1a] transition-colors text-neutral-300">
                         <td className="py-3.5 px-2">
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-2">
+                            <StockLogo ticker={h.ticker} size={24} />
                             <Link
                               href={`/dashboard/stocks/${encodeURIComponent(h.ticker)}`}
                               className="font-bold text-white bg-neutral-800/80 hover:bg-neutral-700 px-2 py-1 rounded border border-neutral-700/50 transition-colors"
@@ -191,7 +193,7 @@ export default function StocksClient({ data }: StocksClientProps) {
                         </td>
                         <td className="py-3.5 px-2 font-medium">{h.shares.toLocaleString()}</td>
                         <td className="py-3.5 px-2">{fmtNative(avgPrice, nativeCur)}</td>
-                        <td className="py-3.5 px-2 font-medium text-white">{fmtNative(currPrice, nativeCur)}</td>
+                        <td className="py-3.5 px-2 font-medium text-white">{fmtNative(currPrice, nativeCur)} <span className="text-[10px] text-neutral-400 font-normal">{nativeCur}</span></td>
                         <td className="py-3.5 px-2 text-neutral-400">{fmtNative(totalCost, nativeCur)}</td>
                         <td className="py-3.5 px-2 font-semibold text-white">{fmtNative(currVal, nativeCur)}</td>
                         <td className="py-3.5 px-2 font-medium text-neutral-300">{weightPct.toFixed(1)}%</td>

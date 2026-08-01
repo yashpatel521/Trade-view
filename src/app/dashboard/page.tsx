@@ -1,6 +1,9 @@
 import { getDashboardDataAction } from '@/lib/actions/trading';
 import DashboardClient from './DashboardClient';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function DashboardPage() {
   // Fetch initial dashboard metrics in base currency (CAD)
   const data = await getDashboardDataAction();

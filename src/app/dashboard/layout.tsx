@@ -28,7 +28,13 @@ export default async function DashboardLayout({
       <Sidebar isAdmin={session.role === 'admin'} />
 
       <div className="flex flex-col flex-1 overflow-hidden">
-        <Header session={session} cashBalance={user?.cashBalance ?? 0} fxRate={fxRate} />
+        <Header
+          session={session}
+          cashBalance={user?.cashBalance ?? 0}
+          cashBalanceCad={user?.cashBalanceCad ?? user?.cashBalance ?? 0}
+          cashBalanceUsd={user?.cashBalanceUsd ?? 0}
+          fxRate={fxRate}
+        />
 
         <main className="flex-1 overflow-y-auto p-6 lg:p-8">
           {children}
