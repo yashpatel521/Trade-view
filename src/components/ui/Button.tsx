@@ -22,10 +22,9 @@ export const Button: React.FC<ButtonProps> = ({
         clsx(
           "relative inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-150 outline-none disabled:opacity-40 disabled:pointer-events-none cursor-pointer",
           {
-            'bg-white text-black hover:bg-neutral-200 active:scale-[0.98]': variant === 'primary',
+            'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 font-bold active:scale-[0.98]': variant === 'primary' || variant === 'success',
             'bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border border-neutral-700 active:scale-[0.98]': variant === 'secondary',
             'bg-red-600/10 text-red-400 hover:bg-red-600/20 border border-red-600/20 active:scale-[0.98]': variant === 'danger',
-            'bg-emerald-600/10 text-emerald-400 hover:bg-emerald-600/20 border border-emerald-600/20 active:scale-[0.98]': variant === 'success',
             'bg-transparent hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200': variant === 'ghost',
           }
         ),

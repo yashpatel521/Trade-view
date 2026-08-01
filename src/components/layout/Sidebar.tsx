@@ -61,28 +61,28 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
       label: 'Dashboard',
       icon: LayoutDashboard,
       active: isDashboardActive,
-      iconColor: isDashboardActive ? 'text-white' : 'text-neutral-500',
+      iconColor: isDashboardActive ? 'text-emerald-400' : 'text-neutral-500',
     },
     {
       href: '/dashboard/stocks',
       label: 'Stocks',
       icon: Layers,
       active: isStocksActive,
-      iconColor: isStocksActive ? 'text-white' : 'text-neutral-500',
+      iconColor: isStocksActive ? 'text-emerald-400' : 'text-neutral-500',
     },
     {
       href: '/dashboard/watchlist',
       label: 'Watchlist',
       icon: Bookmark,
       active: isWatchlistActive,
-      iconColor: isWatchlistActive ? 'text-white' : 'text-neutral-500',
+      iconColor: isWatchlistActive ? 'text-emerald-400' : 'text-neutral-500',
     },
     {
       href: '/dashboard/journal',
       label: 'Journal',
       icon: BookOpen,
       active: isJournalActive,
-      iconColor: isJournalActive ? 'text-blue-400' : 'text-neutral-500',
+      iconColor: isJournalActive ? 'text-emerald-400' : 'text-neutral-500',
     },
   ];
 
@@ -92,14 +92,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
       label: 'Users',
       icon: Users,
       active: isUsersActive,
-      iconColor: isUsersActive ? 'text-amber-400' : 'text-neutral-500',
+      iconColor: isUsersActive ? 'text-emerald-400' : 'text-neutral-500',
     },
     {
       href: '/dashboard/weekly-report',
       label: 'Weekly Report',
       icon: FileText,
       active: isWeeklyReportActive,
-      iconColor: isWeeklyReportActive ? 'text-white' : 'text-neutral-500',
+      iconColor: isWeeklyReportActive ? 'text-emerald-400' : 'text-neutral-500',
       badge: 'AI',
     },
     {
@@ -107,7 +107,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
       label: 'Report History',
       icon: History,
       active: isHistoryActive,
-      iconColor: isHistoryActive ? 'text-white' : 'text-neutral-500',
+      iconColor: isHistoryActive ? 'text-emerald-400' : 'text-neutral-500',
     },
   ];
 
@@ -117,21 +117,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
       label: 'Portfolios',
       icon: Briefcase,
       active: isPortfoliosActive,
-      iconColor: isPortfoliosActive ? 'text-white' : 'text-neutral-500',
+      iconColor: isPortfoliosActive ? 'text-emerald-400' : 'text-neutral-500',
     },
     {
       href: '/dashboard/add',
       label: 'Add Record',
       icon: PlusCircle,
       active: isAddActive,
-      iconColor: isAddActive ? 'text-white' : 'text-neutral-500',
+      iconColor: isAddActive ? 'text-emerald-400' : 'text-neutral-500',
     },
     {
       href: '/dashboard/settings',
       label: 'Settings',
       icon: Settings,
       active: isSettingsActive,
-      iconColor: isSettingsActive ? 'text-white' : 'text-neutral-500',
+      iconColor: isSettingsActive ? 'text-emerald-400' : 'text-neutral-500',
     },
   ];
 
@@ -143,11 +143,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
     >
       {/* Brand Header & Toggle */}
       <div
-        className={`h-16 flex items-center border-b border-[#1a1a1a] transition-all duration-300 ${
-          isCollapsed ? 'justify-center px-2' : 'justify-between px-5'
+        className={`flex items-center transition-all duration-300 ${
+          isCollapsed ? 'justify-center p-2 h-16' : 'justify-between px-4 py-4 h-20'
         }`}
       >
-        <TradeViewLogo showText={!isCollapsed} size={22} />
+        <TradeViewLogo showText={!isCollapsed} size={isCollapsed ? 36 : 42} borderless={true} />
 
         <button
           type="button"
@@ -168,12 +168,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
               key={item.href}
               href={item.href}
               title={isCollapsed ? item.label : undefined}
-              className={`flex items-center gap-3 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex items-center gap-3 rounded-xl text-sm font-medium transition-all ${
                 isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5'
               } ${
                 item.active
-                  ? 'text-white bg-neutral-800'
-                  : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50'
+                  ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 font-bold shadow-xs'
+                  : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50 border border-transparent'
               }`}
             >
               <Icon className={`h-4 w-4 shrink-0 ${item.iconColor}`} />
@@ -197,12 +197,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
                   key={item.href}
                   href={item.href}
                   title={isCollapsed ? item.label : undefined}
-                  className={`flex items-center gap-3 rounded-lg text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-3 rounded-xl text-sm font-medium transition-all ${
                     isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5 justify-between'
                   } ${
                     item.active
-                      ? 'text-white bg-neutral-800'
-                      : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50'
+                      ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 font-bold shadow-xs'
+                      : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50 border border-transparent'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -229,12 +229,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
                 key={item.href}
                 href={item.href}
                 title={isCollapsed ? item.label : undefined}
-                className={`flex items-center gap-3 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex items-center gap-3 rounded-xl text-sm font-medium transition-all ${
                   isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5'
                 } ${
                   item.active
-                    ? 'text-white bg-neutral-800'
-                    : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50'
+                    ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 font-bold shadow-xs'
+                    : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50 border border-transparent'
                 }`}
               >
                 <Icon className={`h-4 w-4 shrink-0 ${item.iconColor}`} />

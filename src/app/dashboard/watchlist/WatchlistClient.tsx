@@ -54,7 +54,7 @@ export function WatchlistClient({ initialItems, liveFxRate }: WatchlistClientPro
       maximumFractionDigits: 2,
     });
 
-    const isCad = nativeCurrency === 'CAD' || (ticker && (ticker.toUpperCase().endsWith('.TO') || ticker.toUpperCase().endsWith('.V') || ticker.toUpperCase().endsWith('.CN')));
+    const isCad = Boolean(ticker && (ticker.toUpperCase().endsWith('.TO') || ticker.toUpperCase().endsWith('.V') || ticker.toUpperCase().endsWith('.CN')));
 
     if (isCad) {
       return `$${formatted} CAD`;

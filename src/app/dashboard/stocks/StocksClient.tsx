@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { DashboardData, Holding } from '@/types/trading';
 import { useCurrencyStore } from '@/lib/store';
-import { Search, Plus, PieChart, TrendingDown } from 'lucide-react';
+import { Search, Plus, PieChart, TrendingDown, TrendingUp } from 'lucide-react';
 import SellModal from '@/components/dashboard/stocks/SellModal';
 import { StockLogo } from '@/components/ui/StockLogo';
 
@@ -51,7 +51,6 @@ export default function StocksClient({ data }: StocksClientProps) {
 
   const getNativeCurrency = (h?: Holding) => {
     if (!h) return 'USD';
-    if (h.nativeCurrency) return h.nativeCurrency;
     const tickerUpper = h.ticker.toUpperCase();
     return tickerUpper.endsWith('.TO') || tickerUpper.endsWith('.V') || tickerUpper.endsWith('.CN') ? 'CAD' : 'USD';
   };
@@ -138,9 +137,9 @@ export default function StocksClient({ data }: StocksClientProps) {
 
             <Link
               href="/dashboard/add"
-              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white text-black font-semibold text-xs rounded-lg hover:bg-neutral-200 transition-colors shadow-sm cursor-pointer whitespace-nowrap"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-bold text-xs rounded-xl transition-all cursor-pointer whitespace-nowrap"
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
               Add Trade
             </Link>
           </div>
@@ -206,9 +205,13 @@ export default function StocksClient({ data }: StocksClientProps) {
                         <td className="py-3.5 px-2 text-right">
                           <button
                             onClick={() => setSellingHolding(h)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-md transition-colors cursor-pointer"
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg transition-colors cursor-pointer ${
+                              unrealPL >= 0
+                                ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20'
+                                : 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20'
+                            }`}
                           >
-                            <TrendingDown className="h-3 w-3" />
+                            {unrealPL >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                             Sell
                           </button>
                         </td>

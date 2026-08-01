@@ -129,7 +129,7 @@ async function fetchStockPrice(ticker: string): Promise<{ price: number; currenc
       const data = await res.json();
       const meta = data?.chart?.result?.[0]?.meta;
       if (meta && typeof meta.regularMarketPrice === 'number' && meta.regularMarketPrice > 0) {
-        const currency = meta.currency ? meta.currency.toUpperCase() : (isCanadian ? 'CAD' : 'USD');
+        const currency = isCanadian ? 'CAD' : 'USD';
         const result = {
           price: meta.regularMarketPrice,
           currency,
@@ -418,11 +418,81 @@ export async function deleteDailyLogAction(id: number) {
   }
 }
 
+export async function checkAndAutoLogDailyJournal(userId: number) {
+  try {
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0 = Sun, 1 = Mon, ..., 5 = Fri, 6 = Sat
+    const hour = now.getHours();
+
+    // Check if weekday (Monday to Friday, 1-5) and at/after 5:00 PM (17:00+)
+    const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+    const isAfter5PM = hour >= 17;
+
+    if (!isWeekday || !isAfter5PM) {
+      return;
+    }
+
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${y}-${m}-${d}`;
+
+    const driver = (process.env.DATABASE_DRIVER || '').toLowerCase();
+    const targetDailyLogs = driver === 'postgres' ? (postgresSchema.dailyLogs as any) : (dailyLogs as any);
+    const targetHoldings = driver === 'postgres' ? (postgresSchema.holdings as any) : (holdings as any);
+
+    // Check if log already exists for today
+    const existing = await db
+      .select()
+      .from(targetDailyLogs)
+      .where(and(eq(targetDailyLogs.userId, userId), eq(targetDailyLogs.date, todayStr)))
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      return; // Already logged for today
+    }
+
+    // Calculate today's P&L across holdings
+    const userHoldings = await db
+      .select()
+      .from(targetHoldings)
+      .where(eq(targetHoldings.userId, userId));
+
+    const fxRate = await fetchFxRate();
+    let totalUnrealizedPLInCAD = 0;
+
+    for (const h of userHoldings) {
+      const tickerUpper = h.ticker.toUpperCase();
+      const liveData = await fetchStockPrice(tickerUpper);
+      const isCanadian = tickerUpper.endsWith('.TO') || tickerUpper.endsWith('.V') || tickerUpper.endsWith('.CN');
+      const nativePL = (liveData.price - h.averagePrice) * h.shares;
+      const plInCAD = isCanadian ? nativePL : nativePL * fxRate;
+      totalUnrealizedPLInCAD += plInCAD;
+    }
+
+    const autoPL = Math.round(totalUnrealizedPLInCAD * 100) / 100;
+
+    await db.insert(targetDailyLogs).values({
+      userId,
+      date: todayStr,
+      profitLoss: autoPL,
+      note: 'Auto-logged weekday 5:00 PM market close P&L summary',
+    });
+
+    console.log(`[Auto-Journal] Created 5:00 PM weekday entry for user ${userId} on ${todayStr}: P&L ${autoPL} CAD`);
+  } catch (err) {
+    console.error('Error in checkAndAutoLogDailyJournal:', err);
+  }
+}
+
 export async function getDailyLogsAction(): Promise<{ logs: DailyLog[] } | null> {
   try {
     const session = await getSession();
     if (!session) return null;
     const userId = session.userId;
+
+    // Check and auto-log weekday 5:00 PM journal entry
+    await checkAndAutoLogDailyJournal(userId);
 
     const logs = await db.query.dailyLogs.findMany({
       where: eq(dailyLogs.userId, userId),
@@ -463,6 +533,9 @@ export async function getDashboardDataAction(viewCurrency: 'CAD' | 'USD' = 'CAD'
     const session = await getSession();
     if (!session) return null;
     const userId = session.userId;
+
+    // Check and auto-log weekday 5:00 PM journal entry
+    await checkAndAutoLogDailyJournal(userId);
 
     // Fetch user cash balance
     const user = await db.query.users.findFirst({
@@ -505,7 +578,8 @@ export async function getDashboardDataAction(viewCurrency: 'CAD' | 'USD' = 'CAD'
     const enrichedHoldings: Holding[] = await Promise.all(userHoldings.map(async (h: any) => {
       const tickerUpper = h.ticker.toUpperCase();
       const liveData = await fetchStockPrice(tickerUpper);
-      const nativeCurrency = (liveData.currency as 'USD' | 'CAD') || (tickerUpper.endsWith('.TO') || tickerUpper.endsWith('.V') || tickerUpper.endsWith('.CN') ? 'CAD' : 'USD');
+      const isCanadian = tickerUpper.endsWith('.TO') || tickerUpper.endsWith('.V') || tickerUpper.endsWith('.CN');
+      const nativeCurrency: 'USD' | 'CAD' = isCanadian ? 'CAD' : 'USD';
       const nativeAveragePrice = h.averagePrice;
       const nativeCurrentPrice = liveData.price;
       const nativeTotalCost = h.shares * nativeAveragePrice;
@@ -515,10 +589,10 @@ export async function getDashboardDataAction(viewCurrency: 'CAD' | 'USD' = 'CAD'
       let livePriceInView = liveData.price;
       let avgPriceInView = h.averagePrice;
 
-      if (liveData.currency === 'USD' && viewCurrency === 'CAD') {
+      if (nativeCurrency === 'USD' && viewCurrency === 'CAD') {
         livePriceInView = liveData.price * fxRate;
         avgPriceInView = h.averagePrice * fxRate;
-      } else if (liveData.currency === 'CAD' && viewCurrency === 'USD') {
+      } else if (nativeCurrency === 'CAD' && viewCurrency === 'USD') {
         livePriceInView = liveData.price / fxRate;
         avgPriceInView = h.averagePrice / fxRate;
       }
@@ -1789,7 +1863,8 @@ export async function getWatchlistAction(): Promise<WatchlistItem[]> {
     items.map(async (item: any) => {
       const tickerUpper = item.ticker.toUpperCase();
       const liveData = await fetchStockPriceDetails(tickerUpper);
-      const nativeCurrency = (liveData.currency as 'USD' | 'CAD') || (tickerUpper.endsWith('.TO') || tickerUpper.endsWith('.V') || tickerUpper.endsWith('.CN') ? 'CAD' : 'USD');
+      const isCanadian = tickerUpper.endsWith('.TO') || tickerUpper.endsWith('.V') || tickerUpper.endsWith('.CN');
+      const nativeCurrency: 'USD' | 'CAD' = isCanadian ? 'CAD' : 'USD';
       
       const price = liveData.price;
       const dayChange = liveData.dayChange;
@@ -1836,7 +1911,8 @@ export async function addToWatchlistAction(ticker: string): Promise<{ success: b
     }
 
     const liveData = await fetchStockPriceDetails(tickerUpper);
-    const nativeCurrency = (liveData.currency as 'USD' | 'CAD') || (tickerUpper.endsWith('.TO') || tickerUpper.endsWith('.V') || tickerUpper.endsWith('.CN') ? 'CAD' : 'USD');
+    const isCanadian = tickerUpper.endsWith('.TO') || tickerUpper.endsWith('.V') || tickerUpper.endsWith('.CN');
+    const nativeCurrency: 'USD' | 'CAD' = isCanadian ? 'CAD' : 'USD';
 
     const newItem: WatchlistItem = {
       id: Date.now(),

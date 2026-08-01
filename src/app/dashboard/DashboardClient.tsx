@@ -15,6 +15,7 @@ import {
   Target,
   Activity,
   ChevronRight,
+  Plus,
 } from 'lucide-react';
 import { DashboardData, Holding } from '@/types/trading';
 import { useCurrencyStore } from '@/lib/store';
@@ -40,6 +41,12 @@ export default function DashboardClient({ data }: DashboardClientProps) {
       style: 'currency',
       currency: currency,
     }).format(val * factor);
+
+  const fmtNative = (val: number, isCad: boolean) =>
+    new Intl.NumberFormat(isCad ? 'en-CA' : 'en-US', {
+      style: 'currency',
+      currency: isCad ? 'CAD' : 'USD',
+    }).format(val);
 
   const pct = (val: number) => `${val >= 0 ? '+' : ''}${val.toFixed(2)}%`;
 
@@ -176,10 +183,10 @@ export default function DashboardClient({ data }: DashboardClientProps) {
           </div>
           <Link
             href="/dashboard/add"
-            className="flex items-center gap-1.5 text-[11px] font-semibold text-neutral-400 hover:text-white transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-bold text-xs rounded-xl transition-all cursor-pointer"
           >
+            <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
             <span>Add Trade</span>
-            <ChevronRight className="h-3.5 w-3.5" />
           </Link>
         </div>
 
@@ -200,10 +207,15 @@ export default function DashboardClient({ data }: DashboardClientProps) {
             <tbody className="divide-y divide-[#111]">
               {holdings.length > 0 ? (
                 holdings.map((h) => {
-                  const pl = h.unrealizedPL || 0;
-                  const plPct = h.unrealizedPLPercent || 0;
+                  const tickerUpper = h.ticker.toUpperCase();
+                  const isCad = tickerUpper.endsWith('.TO') || tickerUpper.endsWith('.V') || tickerUpper.endsWith('.CN');
+                  const avgPrice = h.nativeAveragePrice ?? h.averagePrice;
+                  const currPrice = h.nativeCurrentPrice ?? h.currentPrice ?? 0;
+                  const totalCost = h.nativeTotalCost ?? (h.shares * avgPrice);
+                  const currVal = h.nativeCurrentValue ?? (h.shares * currPrice);
+                  const pl = h.nativeUnrealizedPL ?? (currVal - totalCost);
+                  const plPct = totalCost > 0 ? (pl / totalCost) * 100 : 0;
                   const isPositive = pl >= 0;
-                  const isCad = h.nativeCurrency === 'CAD';
 
                   return (
                     <tr key={h.id} className="hover:bg-[#141414] transition-colors group">
@@ -218,29 +230,33 @@ export default function DashboardClient({ data }: DashboardClientProps) {
                             >
                               {h.ticker}
                             </Link>
-                            <span className="block text-[10px] text-neutral-600">
+                            <span className="block text-[10px] font-medium text-neutral-500 mt-0.5">
                               {isCad ? '🇨🇦 CAD' : '🇺🇸 USD'}
                             </span>
                           </div>
                         </div>
                       </td>
                       <td className="py-4 px-4 text-neutral-300 font-medium">{h.shares.toLocaleString()}</td>
-                      <td className="py-4 px-4 text-neutral-400">{fmt(h.averagePrice)}</td>
-                      <td className="py-4 px-4 text-white font-medium">{fmt(h.currentPrice || 0)}</td>
-                      <td className="py-4 px-4 text-neutral-400">{fmt(h.totalCost || 0)}</td>
-                      <td className="py-4 px-4 text-white font-semibold">{fmt(h.currentValue || 0)}</td>
+                      <td className="py-4 px-4 text-neutral-400">{fmtNative(avgPrice, isCad)}</td>
+                      <td className="py-4 px-4 text-white font-medium">{fmtNative(currPrice, isCad)}</td>
+                      <td className="py-4 px-4 text-neutral-400">{fmtNative(totalCost, isCad)}</td>
+                      <td className="py-4 px-4 text-white font-semibold">{fmtNative(currVal, isCad)}</td>
                       <td className="py-4 px-4">
                         <div className={`inline-flex flex-col ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
-                          <span className="font-bold text-sm">{fmt(pl)}</span>
+                          <span className="font-bold text-sm">{fmtNative(pl, isCad)}</span>
                           <span className="text-[10px] opacity-70">{pct(plPct)}</span>
                         </div>
                       </td>
                       <td className="py-4 px-4 text-right">
                         <button
                           onClick={() => setSellingHolding(h)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold bg-red-500/8 hover:bg-red-500/15 text-red-400 border border-red-500/20 rounded-lg transition-all cursor-pointer opacity-0 group-hover:opacity-100"
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+                            isPositive
+                              ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20'
+                              : 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20'
+                          }`}
                         >
-                          <TrendingDown className="h-3 w-3" />
+                          {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                           Sell
                         </button>
                       </td>
@@ -258,7 +274,7 @@ export default function DashboardClient({ data }: DashboardClientProps) {
                       </div>
                       <Link
                         href="/dashboard/add"
-                        className="mt-1 px-4 py-2 bg-white text-black text-xs font-bold rounded-lg hover:bg-neutral-200 transition-colors"
+                        className="mt-1 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-xs font-bold rounded-xl transition-all cursor-pointer"
                       >
                         Add Trade →
                       </Link>

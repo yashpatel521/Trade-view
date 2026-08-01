@@ -46,7 +46,7 @@ export default function StockDetailClient({ ticker, holding, trades, fxRate, isA
   };
 
   const isCADStock = tickerUpper.endsWith('.TO') || tickerUpper.endsWith('.V') || tickerUpper.endsWith('.CN');
-  const nativeCur: 'USD' | 'CAD' = holding?.nativeCurrency || (isCADStock ? 'CAD' : 'USD');
+  const nativeCur: 'USD' | 'CAD' = isCADStock ? 'CAD' : 'USD';
 
   const fmtNative = (val: number) =>
     new Intl.NumberFormat(nativeCur === 'CAD' ? 'en-CA' : 'en-US', {
