@@ -8,17 +8,6 @@
   --muted: #888888;
   --accent-green: #00d632;
   --accent-red: #ff3b30;
-}
-
-@theme {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-border: var(--card-border);
-  --color-muted: var(--muted);
-  --color-accent-green: var(--accent-green);
-  --color-accent-red: var(--accent-red);
-
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
@@ -76,3 +65,22 @@ body {
   filter: blur(150px);
   background: radial-gradient(circle, rgba(255, 255, 255, 0.02) 0%, rgba(0,0,0,0) 70%);
 }
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  display: inline-flex;
+  animation: marquee 30s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+

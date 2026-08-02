@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { getDashboardDataAction } from '@/lib/actions/trading';
 import { getSession } from '@/lib/session';
 import StockDetailClient from './StockDetailClient';
@@ -7,6 +8,23 @@ export const revalidate = 0;
 
 interface StockDetailPageProps {
   params: Promise<{ ticker: string }>;
+}
+
+export async function generateMetadata({ params }: StockDetailPageProps): Promise<Metadata> {
+  const { ticker } = await params;
+  const decodedTicker = decodeURIComponent(ticker).toUpperCase().trim();
+  const isCad = decodedTicker.endsWith('.TO') || decodedTicker.endsWith('.V') || decodedTicker.endsWith('.CN');
+
+  return {
+    title: `${decodedTicker} Live Stock Price & AI Strategy Analysis | Trade View`,
+    description: `Track real-time ${decodedTicker} stock chart, peak/trough levels, native ${isCad ? 'CAD (CA$)' : 'USD ($)'} quotes, and Gemini AI pattern predictions.`,
+    openGraph: {
+      title: `${decodedTicker} Live Chart & Technical Signals | Trade View`,
+      description: `Real-time interactive chart for ${decodedTicker} with automatic High/Low reference dots and AI pattern analysis.`,
+      url: `https://trade-view.app/dashboard/stocks/${encodeURIComponent(decodedTicker)}`,
+      siteName: 'Trade View',
+    },
+  };
 }
 
 export default async function StockDetailPage({ params }: StockDetailPageProps) {

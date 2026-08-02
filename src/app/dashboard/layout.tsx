@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { getSession } from '@/lib/session';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
@@ -6,6 +7,34 @@ import { db } from '@/db';
 import { users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { getFxRateAction } from '@/lib/actions/trading';
+
+export const metadata: Metadata = {
+  title: 'Pro Trading Dashboard | Trade View Portfolio Manager',
+  description:
+    'Manage your US & Canadian stock positions, view automated 5:00 PM P&L journal logs, track multi-currency cash balances, and monitor Gemini AI pattern signals.',
+  keywords: [
+    'trading dashboard',
+    'portfolio manager',
+    'stock journal',
+    'real-time stock tracking',
+    'CAD USD trading dashboard',
+    'Gemini AI trading signals',
+  ],
+  openGraph: {
+    title: 'Pro Trading Dashboard | Trade View Portfolio Manager',
+    description:
+      'Manage your US & Canadian stock positions with real-time portfolio tracking, multi-currency conversion, and AI strategy signals.',
+    url: 'https://trade-view.app/dashboard',
+    siteName: 'Trade View',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Pro Trading Dashboard | Trade View Portfolio Manager',
+    description:
+      'Real-time stock portfolio tracking, CAD/USD multi-currency ledger, and 5 PM auto-journaling.',
+  },
+};
 
 export default async function DashboardLayout({
   children,

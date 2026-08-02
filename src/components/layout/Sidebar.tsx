@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Briefcase,
+  TrendingUp,
 } from 'lucide-react';
 import { TradeViewLogo } from '@/components/ui/TradeViewLogo';
 
@@ -57,191 +58,128 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
       label: 'Dashboard',
       icon: LayoutDashboard,
       active: isDashboardActive,
-      iconColor: isDashboardActive ? 'text-emerald-400' : 'text-neutral-500',
+      iconColor: isDashboardActive ? 'text-emerald-400' : 'text-neutral-400',
+    },
+    {
+      href: '/dashboard/add',
+      label: 'Add Trade',
+      icon: PlusCircle,
+      active: isAddActive,
+      iconColor: isAddActive ? 'text-emerald-400' : 'text-neutral-400',
     },
     {
       href: '/dashboard/stocks',
-      label: 'Stocks',
+      label: 'Stock Market',
       icon: Layers,
       active: isStocksActive,
-      iconColor: isStocksActive ? 'text-emerald-400' : 'text-neutral-500',
+      iconColor: isStocksActive ? 'text-emerald-400' : 'text-neutral-400',
     },
     {
       href: '/dashboard/watchlist',
       label: 'Watchlist',
       icon: Bookmark,
       active: isWatchlistActive,
-      iconColor: isWatchlistActive ? 'text-emerald-400' : 'text-neutral-500',
+      iconColor: isWatchlistActive ? 'text-emerald-400' : 'text-neutral-400',
     },
     {
       href: '/dashboard/journal',
-      label: 'Journal',
+      label: 'P&L Journal',
       icon: BookOpen,
       active: isJournalActive,
-      iconColor: isJournalActive ? 'text-emerald-400' : 'text-neutral-500',
+      iconColor: isJournalActive ? 'text-emerald-400' : 'text-neutral-400',
     },
-  ];
-
-  const adminItems = [
     {
-      href: '/dashboard/users',
-      label: 'Users',
-      icon: Users,
-      active: isUsersActive,
-      iconColor: isUsersActive ? 'text-emerald-400' : 'text-neutral-500',
+      href: '/dashboard/portfolios',
+      label: 'Portfolios',
+      icon: Briefcase,
+      active: isPortfoliosActive,
+      iconColor: isPortfoliosActive ? 'text-emerald-400' : 'text-neutral-400',
     },
     {
       href: '/dashboard/weekly-report',
       label: 'Weekly Report',
       icon: FileText,
       active: isWeeklyReportActive,
-      iconColor: isWeeklyReportActive ? 'text-emerald-400' : 'text-neutral-500',
-      badge: 'AI',
+      iconColor: isWeeklyReportActive ? 'text-emerald-400' : 'text-neutral-400',
     },
     {
       href: '/dashboard/report-history',
       label: 'Report History',
       icon: History,
       active: isHistoryActive,
-      iconColor: isHistoryActive ? 'text-emerald-400' : 'text-neutral-500',
+      iconColor: isHistoryActive ? 'text-emerald-400' : 'text-neutral-400',
     },
   ];
 
-  const bottomItems = [
-    {
-      href: '/dashboard/portfolios',
-      label: 'Portfolios',
-      icon: Briefcase,
-      active: isPortfoliosActive,
-      iconColor: isPortfoliosActive ? 'text-emerald-400' : 'text-neutral-500',
-    },
-    {
-      href: '/dashboard/add',
-      label: 'Add Record',
-      icon: PlusCircle,
-      active: isAddActive,
-      iconColor: isAddActive ? 'text-emerald-400' : 'text-neutral-500',
-    },
-    {
-      href: '/dashboard/settings',
-      label: 'Settings',
-      icon: Settings,
-      active: isSettingsActive,
-      iconColor: isSettingsActive ? 'text-emerald-400' : 'text-neutral-500',
-    },
-  ];
+  if (isAdmin) {
+    navItems.push({
+      href: '/dashboard/users',
+      label: 'User Admin',
+      icon: Users,
+      active: isUsersActive,
+      iconColor: isUsersActive ? 'text-emerald-400' : 'text-neutral-400',
+    });
+  }
+
+  navItems.push({
+    href: '/dashboard/settings',
+    label: 'Settings',
+    icon: Settings,
+    active: isSettingsActive,
+    iconColor: isSettingsActive ? 'text-emerald-400' : 'text-neutral-400',
+  });
 
   return (
     <aside
-      className={`${
-        isCollapsed ? 'w-16' : 'w-60'
-      } border-r border-[#1a1a1a] bg-[#0a0a0a] flex flex-col h-full sticky top-0 transition-all duration-300 select-none shrink-0`}
+      className={`relative z-50 flex flex-col border-r border-white/10 bg-[#060606]/95 backdrop-blur-2xl transition-all duration-300 ease-out select-none ${
+        isCollapsed ? 'w-20' : 'w-64'
+      }`}
     >
-      {/* Brand Header & Toggle */}
-      <div
-        className={`flex items-center transition-all duration-300 ${
-          isCollapsed ? 'justify-center p-2 h-16' : 'justify-between px-4 py-4 h-20'
-        }`}
-      >
-        <TradeViewLogo showText={!isCollapsed} size={isCollapsed ? 36 : 42} borderless={true} />
+      {/* Top Sidebar Header */}
+      <div className="h-16 sm:h-20 flex items-center justify-between px-4 border-b border-white/10 shrink-0">
+        <Link href="/" className="flex items-center gap-2 overflow-hidden">
+          <TradeViewLogo showText={!isCollapsed} size={34} borderless={true} />
+        </Link>
 
+        {/* Toggle Collapse Button */}
         <button
           type="button"
           onClick={toggleCollapse}
-          className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer shrink-0"
-          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className="p-1.5 rounded-xl bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 text-neutral-400 hover:text-white transition cursor-pointer"
+          title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
         >
           {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </button>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 py-5 px-2 flex flex-col gap-1 overflow-y-auto overflow-x-hidden">
+      {/* Navigation Links List */}
+      <nav className="flex-1 overflow-y-auto p-3 space-y-1.5">
         {navItems.map((item) => {
           const Icon = item.icon;
           return (
             <Link
               key={item.href}
               href={item.href}
-              title={isCollapsed ? item.label : undefined}
-              className={`flex items-center gap-3 rounded-xl text-sm font-medium transition-all ${
-                isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5'
-              } ${
+              className={`flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold transition-all ${
                 item.active
-                  ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 font-bold shadow-xs'
-                  : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50 border border-transparent'
+                  ? 'bg-emerald-500/15 text-white border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.15)]'
+                  : 'text-neutral-400 hover:text-white hover:bg-neutral-900/60'
               }`}
+              title={isCollapsed ? item.label : undefined}
             >
-              <Icon className={`h-4 w-4 shrink-0 ${item.iconColor}`} />
-              {!isCollapsed && <span>{item.label}</span>}
+              <Icon className={`h-4 w-4 shrink-0 stroke-[2.2] ${item.iconColor}`} />
+              {!isCollapsed && <span className="truncate">{item.label}</span>}
             </Link>
           );
         })}
-
-        {/* Admin Section */}
-        {isAdmin && (
-          <>
-            {!isCollapsed && (
-              <div className="mt-3 mb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-neutral-600">
-                Admin
-              </div>
-            )}
-            {adminItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  title={isCollapsed ? item.label : undefined}
-                  className={`flex items-center gap-3 rounded-xl text-sm font-medium transition-all ${
-                    isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5 justify-between'
-                  } ${
-                    item.active
-                      ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 font-bold shadow-xs'
-                      : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50 border border-transparent'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <Icon className={`h-4 w-4 shrink-0 ${item.iconColor}`} />
-                    {!isCollapsed && <span className="truncate">{item.label}</span>}
-                  </div>
-                  {!isCollapsed && item.badge && (
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
-                      {item.badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </>
-        )}
-
-        {/* Bottom Menu Items */}
-        <div className="mt-auto pt-4 flex flex-col gap-1 border-t border-neutral-900">
-          {bottomItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                title={isCollapsed ? item.label : undefined}
-                className={`flex items-center gap-3 rounded-xl text-sm font-medium transition-all ${
-                  isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5'
-                } ${
-                  item.active
-                    ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 font-bold shadow-xs'
-                    : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50 border border-transparent'
-                }`}
-              >
-                <Icon className={`h-4 w-4 shrink-0 ${item.iconColor}`} />
-                {!isCollapsed && <span>{item.label}</span>}
-              </Link>
-            );
-          })}
-        </div>
       </nav>
+
+      {/* Bottom Footer Info */}
+      {!isCollapsed && (
+        <div className="p-4 border-t border-white/5 text-[10px] text-neutral-500 font-mono text-center shrink-0">
+          <span>Trade View Pro v2.0</span>
+        </div>
+      )}
     </aside>
   );
 };
-
-export default Sidebar;
