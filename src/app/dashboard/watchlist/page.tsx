@@ -23,7 +23,7 @@ export default async function WatchlistPage() {
   const liveFxRate = await getFxRateAction();
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="space-y-6 w-full max-w-none">
       <WatchlistClient initialItems={initialItems} liveFxRate={liveFxRate} />
     </div>
   );

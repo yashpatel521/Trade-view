@@ -77,7 +77,7 @@ export default function DashboardClient({ data }: DashboardClientProps) {
   };
 
   return (
-    <div className="flex flex-col gap-6 sm:gap-8 max-w-7xl mx-auto font-sans selection:bg-emerald-500/30 selection:text-emerald-300">
+    <div className="flex flex-col gap-6 sm:gap-8 w-full max-w-none font-sans selection:bg-emerald-500/30 selection:text-emerald-300">
       {/* Structured SEO Schema */}
       <script
         type="application/ld+json"

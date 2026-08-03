@@ -1579,36 +1579,47 @@ export async function getLastWeeklyReportAction(): Promise<{ report: WeeklyRepor
 
   const now = new Date();
   return {
-    report: defaultReport,
+          report: defaultReport,
     createdAt: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' (' + now.toLocaleDateString() + ')',
   };
 }
 
-function normalizeWeeklyReportItem(item: any, idx: number): WeeklyReportStock {
+function extractPct(str?: any): number | null {
+  if (!str) return null;
+  const match = String(str).match(/([+-]?\d+(?:\.\d+)?)\s*%/);
+  if (match && match[1]) {
+    return parseFloat(match[1]);
+  }
+  return null;
+}
+
+async function normalizeWeeklyReportItem(item: any, idx: number): Promise<WeeklyReportStock> {
   const stock = String(item.stock || item.ticker || item.symbol || item.code || 'NVDA').toUpperCase().trim();
   const bias = String(item.bias || item.direction || 'Bullish').trim();
 
-  const expectedDayHigh = String(
-    item.expectedDayHigh || item.expected_day_high || item.dayHigh || item.day_high || '$148.50 (+3.8%)'
-  ).trim();
+  // Fetch real-time live market price from Yahoo/Finnhub engine
+  const liveDetails = await fetchStockPriceDetails(stock);
+  const livePrice = liveDetails.price > 0 ? liveDetails.price : 150.0;
 
-  const expectedDayLow = String(
-    item.expectedDayLow || item.expected_day_low || item.dayLow || item.day_low || '$141.20 (-1.3%)'
-  ).trim();
+  // Extract or calculate realistic day/week percentages
+  const dayHighPct = extractPct(item.expectedDayHigh) || 2.4;
+  const dayLowPct = extractPct(item.expectedDayLow) || -1.2;
+  const weekHighPct = extractPct(item.expectedWeekHigh) || 8.5;
+  const weekLowPct = extractPct(item.expectedWeekLow) || -2.8;
 
-  const expectedWeekHigh = String(
-    item.expectedWeekHigh || item.expected_week_high || item.weekHigh || item.week_high || '$162.00 (+13.2%)'
-  ).trim();
+  const dayHighVal = livePrice * (1 + Math.abs(dayHighPct) / 100);
+  const dayLowVal = livePrice * (1 - Math.abs(dayLowPct) / 100);
+  const weekHighVal = livePrice * (1 + Math.abs(weekHighPct) / 100);
+  const weekLowVal = livePrice * (1 - Math.abs(weekLowPct) / 100);
 
-  const expectedWeekLow = String(
-    item.expectedWeekLow || item.expected_week_low || item.weekLow || item.week_low || '$139.00 (-2.8%)'
-  ).trim();
+  const curSymbol = liveDetails.currency === 'CAD' ? '$' : '$';
 
-  const waitUntil = String(
-    item.waitUntil || item.wait_until || item.wait_time || item.time || '9:45 AM ET'
-  ).trim();
+  const expectedDayHigh = `${curSymbol}${dayHighVal.toFixed(2)} (+${Math.abs(dayHighPct).toFixed(1)}%)`;
+  const expectedDayLow = `${curSymbol}${dayLowVal.toFixed(2)} (-${Math.abs(dayLowPct).toFixed(1)}%)`;
+  const expectedWeekHigh = `${curSymbol}${weekHighVal.toFixed(2)} (+${Math.abs(weekHighPct).toFixed(1)}%)`;
+  const expectedWeekLow = `${curSymbol}${weekLowVal.toFixed(2)} (-${Math.abs(weekLowPct).toFixed(1)}%)`;
 
-  let rawConf = item.confidence || item.confidenceScore || item.confidence_score || '95%';
+  let rawConf = item.confidence || item.confidenceScore || item.confidence_score || '94%';
   let confStr = String(rawConf).trim();
   if (!confStr.endsWith('%')) {
     confStr = `${confStr}%`;
@@ -1622,7 +1633,7 @@ function normalizeWeeklyReportItem(item: any, idx: number): WeeklyReportStock {
     expectedDayLow,
     expectedWeekHigh,
     expectedWeekLow,
-    waitUntil,
+    waitUntil: '9:45 AM ET',
     confidence: confStr,
   };
 }
@@ -1631,68 +1642,48 @@ export async function generateNewWeeklyReportAction(): Promise<{ report: WeeklyR
   // ONLY CALLED ON USER MANUAL SCAN CLICK!
   const apiKey = (process.env.GEMINI_API_KEY || '').replace(/['"]/g, '').trim();
 
-  const prompt = `You are an elite institutional market research AI with expertise in equities, macroeconomics, technical analysis, quantitative investing, options flow, and market sentiment.
+  const prompt = `You are a Lead Quantitative Research Director & Chief Technical Strategist at a tier-1 Wall Street quantitative hedge fund.
 
-When evaluating /stockreport, perform a complete market scan.
+Your task is to execute a comprehensive, institutional-grade market scan to identify the TOP 5 most compelling BULLISH equity trading opportunities for the upcoming trading week using current live market data.
 
-## PRIMARY OBJECTIVE
-Research the current market using the most recent available information and identify the 5 best bullish stock opportunities today.
-Only include bullish stocks. Do not include bearish setups. Do not include ETFs.
-Select stocks with the highest probability bullish trading opportunity based on all available evidence.
-Think like a hedge fund research team combining macro analysts, technical analysts, quantitative researchers, and fundamental analysts.
+## 🎯 SELECTION & LIQUIDITY CRITERIA
+1. **Target Equities**: High-liquidity US (S&P 500 / Nasdaq 100) or Canadian (TSX 60) individual stocks only. No ETFs, penny stocks, or illiquid micro-caps.
+2. **Setup Alignment**: Select ONLY stocks demonstrating clear, high-conviction BULLISH multi-timeframe momentum (combining fundamental earnings/news catalysts, institutional 13F accumulation, and technical breakout structures).
+3. **Probability & Edge**: Prioritize setups with strong risk-to-reward ratios (>2.5:1), positive relative strength against the S&P 500, and favorable options gamma/delta flow.
 
-## ELIGIBLE SECURITIES
-You may select: Individual Stocks. Choose only stocks with bullish setups.
+## 📊 MULTI-DIMENSIONAL QUANT WEIGHTING
+- **Technical Structure & Momentum (30%)**: Key breakout levels, 20/50/200 EMA support, RSI (55-70 zone), MACD bullish divergence, ATR volatility bounds.
+- **Institutional Accumulation (25%)**: Dark Pool activity, block trades, 13F hedge fund positioning.
+- **Earnings & News Catalysts (20%)**: Upbeat earnings guidance, analyst upgrades, product launches, positive sector momentum.
+- **Macro & Sector Relative Strength (15%)**: Outperforming sector ETF (e.g. XLK, XLE, XLF), favorable Fed rate expectations, stable DXY/VIX conditions.
+- **Risk & Volatility Management (10%)**: Managed drawdown risk, defined support levels, high liquidity buffer.
 
-## RESEARCH REQUIREMENTS
-Research and analyze as many relevant sources, signals, trends, and chart patterns as possible including:
-- Latest market news & breaking company news
-- Earnings reports & guidance, SEC filings
-- Insider buying/selling & institutional holdings (e.g. JP Morgan, BlackRock)
-- Analyst upgrades/downgrades & price targets
-- Economic calendar (CPI, PPI, GDP, Fed announcements, Treasury yields, Dollar Index DXY, Oil, Gold, VIX)
-- Sector rotation, options flow, unusual options activity, short interest
-- Relative strength, price momentum, volume analysis, moving averages, RSI, MACD, Bollinger Bands, ATR, VWAP
-- Support & resistance, trend strength, breakout probability, market breadth
-- Multi-timeframe technical structure (intraday, daily, weekly setups)
+## 📐 COMPUTATION FOR EACH OF THE TOP 5 STOCKS
+For each of the 5 selected stocks, provide:
+- **rank**: Integer from 1 (highest conviction) to 5.
+- **stock**: Ticker symbol in uppercase (e.g. "NVDA", "AAPL", "TSLA", "GOOGL", "RY.TO").
+- **bias**: Must be "Bullish".
+- **expectedDayHigh**: Realistic target day high percentage string (e.g. "+2.4%").
+- **expectedDayLow**: Realistic target day low percentage string (e.g. "-1.2%").
+- **expectedWeekHigh**: Realistic target 5-day week high percentage string (e.g. "+8.5%").
+- **expectedWeekLow**: Realistic target 5-day week low percentage string (e.g. "-2.8%").
+- **confidence**: Institutional probability conviction score formatted as a percentage string (e.g. "94%").
 
-## ANALYSIS WEIGHTING
-Macro Environment: 20%
-News Sentiment: 20%
-Technical Analysis: 20%
-Institutional Activity: 15%
-Fundamentals: 10%
-Sector Strength: 5%
-Momentum: 5%
-Risk/Volatility: 5%
+## ⚠️ STRICT OUTPUT FORMAT REQUIREMENT
+Return ONLY a raw JSON array containing exactly 5 objects. Do NOT include markdown code blocks, backticks (\`\`\`json), intro text, or explanation text.
 
-## STOCK SELECTION RULES
-Choose EXACTLY 5 stocks with strong liquidity, high volume, clear bullish technical setup, positive catalyst, and high probability upside.
-
-## FOR EACH STOCK CALCULATE
-- Rank (1 to 5)
-- Stock Ticker (uppercase, e.g. "NVDA")
-- Bias ("Bullish")
-- Expected Day High: $X.XX (+Y.Y%)
-- Expected Day Low: $X.XX (-Y.Y%)
-- Expected Week High: $X.XX (+Y.Y%)
-- Expected Week Low: $X.XX (-Y.Y%)
-- Confidence Score (0-100)
-
-## OUTPUT FORMAT
-Return ONLY a valid JSON array of 5 objects without markdown text, preambles, or markdown backticks:
+Example JSON output structure:
 [
   {
     "rank": 1,
     "stock": "NVDA",
     "bias": "Bullish",
-    "expectedDayHigh": "$148.50 (+3.8%)",
-    "expectedDayLow": "$141.20 (-1.3%)",
-    "expectedWeekHigh": "$162.00 (+13.2%)",
-    "expectedWeekLow": "$139.00 (-2.8%)",
-    "confidence": "95%"
-  },
-  ...
+    "expectedDayHigh": "+2.5%",
+    "expectedDayLow": "-1.2%",
+    "expectedWeekHigh": "+8.8%",
+    "expectedWeekLow": "-2.2%",
+    "confidence": "96%"
+  }
 ]`;
 
   let reportList: WeeklyReportStock[] = [];
@@ -1726,7 +1717,9 @@ Return ONLY a valid JSON array of 5 objects without markdown text, preambles, or
 
         const parsed = JSON.parse(cleanJson);
         if (Array.isArray(parsed) && parsed.length >= 5) {
-          reportList = parsed.slice(0, 5).map((item: any, idx: number) => normalizeWeeklyReportItem(item, idx));
+          reportList = await Promise.all(
+            parsed.slice(0, 5).map((item: any, idx: number) => normalizeWeeklyReportItem(item, idx))
+          );
         }
       }
     } catch (err) {

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { DailyLog } from '@/types/trading';
-import { ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
+import { ChevronLeft, ChevronRight, BookOpen, Calendar as CalendarIcon, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 interface JournalCalendarProps {
@@ -23,13 +23,13 @@ export default function JournalCalendar({ dailyLogs, fmt }: JournalCalendarProps
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
 
-  // Build a lookup map: "YYYY-MM-DD" -> DailyLog
+  // Lookup map: "YYYY-MM-DD" -> DailyLog
   const logMap = new Map<string, DailyLog>();
   for (const log of dailyLogs) {
     logMap.set(log.date, log);
   }
 
-  // Calendar grid
+  // Calendar grid math
   const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
@@ -44,69 +44,73 @@ export default function JournalCalendar({ dailyLogs, fmt }: JournalCalendarProps
   const nextMonth = () => setViewDate(new Date(year, month + 1, 1));
   const isCurrentMonth = year === today.getFullYear() && month === today.getMonth();
 
-  // Month stats
+  // Month summary stats
   const monthLogs = dailyLogs.filter((l) => l.date.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`));
   const monthNet = monthLogs.reduce((s, l) => s + l.profitLoss, 0);
   const monthProfit = monthLogs.filter((l) => l.profitLoss > 0).length;
   const monthLoss = monthLogs.filter((l) => l.profitLoss < 0).length;
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="px-5 py-4 border-b border-[#1a1a1a] bg-[#141414] flex items-center justify-between">
+    <div className="flex flex-col h-full font-sans">
+      {/* Top Calendar Toolbar */}
+      <div className="px-6 py-4 border-b border-neutral-800 bg-[#080808]/90 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <BookOpen className="h-4 w-4 text-blue-400" />
-          <span className="text-xs font-bold text-white uppercase tracking-wider">P&L Calendar</span>
+          <CalendarIcon className="h-4 w-4 text-emerald-400" />
+          <h3 className="text-xs sm:text-sm font-extrabold text-white uppercase tracking-wider">Monthly P&amp;L Heatmap</h3>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={prevMonth}
-            className="h-6 w-6 rounded flex items-center justify-center text-neutral-500 hover:text-white hover:bg-neutral-800 transition cursor-pointer"
-          >
-            <ChevronLeft className="h-3.5 w-3.5" />
-          </button>
-          <span className="text-xs font-semibold text-white min-w-28 text-center">
-            {MONTHS[month]} {year}
+
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 bg-neutral-950 p-1 rounded-xl border border-neutral-800">
+            <button
+              type="button"
+              onClick={prevMonth}
+              className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition cursor-pointer"
+              title="Previous Month"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="text-xs font-black text-white min-w-32 text-center font-mono">
+              {MONTHS[month]} {year}
+            </span>
+            <button
+              type="button"
+              onClick={nextMonth}
+              disabled={isCurrentMonth}
+              className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Next Month"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Monthly Summary Bar */}
+      <div className="flex items-center justify-between px-6 py-3 border-b border-neutral-800/80 bg-neutral-950/80">
+        <div className="flex items-center gap-3 font-mono text-xs">
+          <span className="text-[10px] text-neutral-400 uppercase font-bold tracking-wider">Monthly Net:</span>
+          <span className={`font-black ${monthNet >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            {monthNet >= 0 ? '+' : ''}{fmt(monthNet)}
           </span>
-          <button
-            onClick={nextMonth}
-            disabled={isCurrentMonth}
-            className="h-6 w-6 rounded flex items-center justify-center text-neutral-500 hover:text-white hover:bg-neutral-800 transition disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            <ChevronRight className="h-3.5 w-3.5" />
-          </button>
+          <span className="text-neutral-700">·</span>
+          <span className="text-emerald-400 font-bold">{monthProfit} Win{monthProfit !== 1 ? 's' : ''}</span>
+          <span className="text-red-400 font-bold">{monthLoss} Loss{monthLoss !== 1 ? 'es' : ''}</span>
         </div>
       </div>
 
-      {/* Month summary strip */}
-      <div className="flex items-center gap-4 px-5 py-2.5 border-b border-[#111] bg-[#0d0d0d]">
-        <span className={`text-xs font-black ${monthNet >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-          {monthNet >= 0 ? '+' : ''}{fmt(monthNet)}
-        </span>
-        <span className="text-[10px] text-neutral-600">·</span>
-        <span className="text-[10px] text-emerald-500 font-semibold">{monthProfit}↑</span>
-        <span className="text-[10px] text-red-500 font-semibold">{monthLoss}↓</span>
-        <Link
-          href="/dashboard/journal"
-          className="ml-auto text-[10px] text-neutral-500 hover:text-white transition font-semibold"
-        >
-          Open Journal →
-        </Link>
-      </div>
-
-      {/* Day headers */}
-      <div className="grid grid-cols-7 px-3 pt-3">
+      {/* Day Headers */}
+      <div className="grid grid-cols-7 px-4 pt-4">
         {DAYS.map((d) => (
-          <div key={d} className="text-center text-[9px] font-bold text-neutral-600 uppercase pb-2">
+          <div key={d} className="text-center text-[10px] font-extrabold text-neutral-400 uppercase pb-2 font-mono">
             {d}
           </div>
         ))}
       </div>
 
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-1 px-3 pb-3 flex-1">
+      {/* Calendar Heatmap Grid */}
+      <div className="grid grid-cols-7 gap-1.5 px-4 pb-4 flex-1">
         {cells.map((day, i) => {
-          if (!day) return <div key={i} />;
+          if (!day) return <div key={i} className="min-h-14 rounded-xl bg-transparent" />;
 
           const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
           const log = logMap.get(dateStr);
@@ -114,7 +118,6 @@ export default function JournalCalendar({ dailyLogs, fmt }: JournalCalendarProps
           const isProfit = log && log.profitLoss > 0;
           const isLoss = log && log.profitLoss < 0;
 
-          // Format compact value: e.g. +1.2k or -340
           const compactVal = (v: number) => {
             const abs = Math.abs(v);
             const sign = v >= 0 ? '+' : '-';
@@ -128,52 +131,53 @@ export default function JournalCalendar({ dailyLogs, fmt }: JournalCalendarProps
               key={i}
               title={log ? `${dateStr}: ${fmt(log.profitLoss)}${log.note ? `\n${log.note}` : ''}` : dateStr}
               className={`
-                relative rounded-lg flex flex-col items-start justify-between p-1.5 min-h-13 transition-all select-none
+                relative rounded-2xl flex flex-col justify-between p-2 min-h-16 transition-all select-none group
                 ${log
                   ? isProfit
-                    ? 'bg-emerald-500/15 border border-emerald-500/30'
+                    ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
                     : isLoss
-                    ? 'bg-red-500/15 border border-red-500/30'
-                    : 'bg-neutral-800 border border-neutral-700'
-                  : 'bg-[#111] border border-[#1a1a1a] hover:bg-[#181818]'
+                    ? 'bg-red-500/20 border border-red-500/40 text-red-300 shadow-[0_0_15px_rgba(239,68,68,0.15)]'
+                    : 'bg-neutral-900 border border-neutral-800'
+                  : 'bg-neutral-950/60 border border-neutral-900 hover:border-neutral-800'
                 }
-                ${isToday ? 'ring-1 ring-white/25' : ''}
+                ${isToday ? 'ring-2 ring-emerald-400' : ''}
               `}
             >
-              {/* Day number */}
-              <span className={`text-[10px] font-bold leading-none ${isToday ? 'text-white' : log ? (isProfit ? 'text-emerald-300' : isLoss ? 'text-red-300' : 'text-neutral-400') : 'text-neutral-600'}`}>
-                {day}
-              </span>
-
-              {/* P&L value */}
-              {log && (
-                <span className={`text-[9px] font-black leading-none w-full text-center mt-auto ${isProfit ? 'text-emerald-400' : isLoss ? 'text-red-400' : 'text-neutral-500'}`}>
-                  {compactVal(log.profitLoss)}
+              {/* Day Number */}
+              <div className="flex items-center justify-between w-full">
+                <span
+                  className={`text-[11px] font-black font-mono leading-none ${
+                    isToday
+                      ? 'text-emerald-400'
+                      : log
+                      ? isProfit
+                        ? 'text-emerald-300'
+                        : isLoss
+                        ? 'text-red-300'
+                        : 'text-neutral-400'
+                      : 'text-neutral-400'
+                  }`}
+                >
+                  {day}
                 </span>
+                {isToday && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
+              </div>
+
+              {/* P&L Value Badge */}
+              {log && (
+                <div className="mt-auto w-full text-center">
+                  <span
+                    className={`text-[10px] font-black font-mono block truncate ${
+                      isProfit ? 'text-emerald-400' : isLoss ? 'text-red-400' : 'text-neutral-400'
+                    }`}
+                  >
+                    {compactVal(log.profitLoss)}
+                  </span>
+                </div>
               )}
             </div>
           );
         })}
-      </div>
-
-      {/* Legend */}
-      <div className="flex items-center gap-3 px-5 pb-4 pt-1 border-t border-[#111]">
-        <div className="flex items-center gap-1.5">
-          <div className="h-2.5 w-2.5 rounded-sm bg-emerald-500/30 border border-emerald-500/40" />
-          <span className="text-[9px] text-neutral-600">Profit</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="h-2.5 w-2.5 rounded-sm bg-red-500/30 border border-red-500/40" />
-          <span className="text-[9px] text-neutral-600">Loss</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="h-2.5 w-2.5 rounded-sm bg-neutral-800 border border-neutral-700" />
-          <span className="text-[9px] text-neutral-600">Flat</span>
-        </div>
-        <div className="flex items-center gap-1.5 ml-auto">
-          <div className="h-2.5 w-2.5 rounded-sm ring-1 ring-white/30" />
-          <span className="text-[9px] text-neutral-600">Today</span>
-        </div>
       </div>
     </div>
   );

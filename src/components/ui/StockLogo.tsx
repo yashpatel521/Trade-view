@@ -8,31 +8,64 @@ interface StockLogoProps {
   size?: number;
 }
 
-export const StockLogo: React.FC<StockLogoProps> = ({ ticker, className = 'h-7 w-7', size = 28 }) => {
-  const [hasError, setHasError] = useState(false);
+// Generate deterministic background color hue based on ticker string
+const getTickerHue = (str: string) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return Math.abs(hash) % 360;
+};
 
-  const clean = ticker ? ticker.toUpperCase().trim().replace(/\.(TO|V|CN)$/i, '') : '';
-  const logoUrl = `https://assets.parqet.com/logos/symbol/${clean}?format=png`;
+export const StockLogo: React.FC<StockLogoProps> = ({ ticker, className = '', size = 32 }) => {
+  const [imgIndex, setImgIndex] = useState(0);
 
-  if (hasError || !clean) {
+  const clean = ticker ? ticker.toUpperCase().trim().replace(/\.(TO|V|CN)$/i, '') : 'STK';
+
+  // Multi-tier logo URLs
+  const sources = [
+    `https://assets.parqet.com/logos/symbol/${clean}?format=png`,
+    `https://financialmodelingprep.com/image-stock/${clean}.png`,
+    `https://logo.clearbit.com/${clean.toLowerCase()}.com`,
+  ];
+
+  const handleImgError = () => {
+    if (imgIndex < sources.length - 1) {
+      setImgIndex((prev) => prev + 1);
+    } else {
+      setImgIndex(sources.length); // Trigger fallback avatar badge
+    }
+  };
+
+  if (imgIndex >= sources.length || !clean) {
+    const hue = getTickerHue(clean);
     return (
       <div
-        className={`${className} rounded-full bg-neutral-800 flex items-center justify-center font-bold text-[10px] text-white shrink-0 border border-neutral-700 select-none`}
-        style={{ width: `${size}px`, height: `${size}px` }}
+        className={`${className} rounded-xl flex items-center justify-center font-black text-xs text-white shrink-0 border border-white/20 select-none shadow-md font-mono`}
+        style={{
+          width: `${size}px`,
+          height: `${size}px`,
+          background: `linear-gradient(135deg, hsl(${hue}, 70%, 30%), hsl(${(hue + 40) % 360}, 80%, 15%))`,
+        }}
       >
-        {clean.slice(0, 2)}
+        {clean.slice(0, 3)}
       </div>
     );
   }
 
   return (
-    <img
-      src={logoUrl}
-      alt={ticker}
-      onError={() => setHasError(true)}
-      className={`${className} rounded-full object-contain bg-white/5 border border-neutral-700 shrink-0`}
+    <div
+      className={`relative shrink-0 rounded-xl overflow-hidden bg-neutral-900 border border-neutral-800 flex items-center justify-center shadow-md p-0.5 ${className}`}
       style={{ width: `${size}px`, height: `${size}px` }}
-    />
+    >
+      <img
+        src={sources[imgIndex]}
+        alt={`${ticker} logo`}
+        onError={handleImgError}
+        className="w-full h-full object-contain rounded-lg"
+        loading="lazy"
+      />
+    </div>
   );
 };
 

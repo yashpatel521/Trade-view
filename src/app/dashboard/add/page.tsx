@@ -1,28 +1,30 @@
 import AddTradeForm from '@/components/dashboard/trades/AddTradeForm';
 import AddDailyLogForm from '@/components/dashboard/journal/AddDailyLogForm';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Sparkles, ShieldCheck, Zap } from 'lucide-react';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Execute Trade & Log Journal | Trade View',
+  description: 'Execute new stock trade orders with automatic CAD/USD currency routing or log your daily trading session P&L.',
+};
 
 export default function AddRecordPage() {
   return (
-    <div className="flex flex-col gap-6 max-w-7xl">
-      {/* Header */}
+    <div className="flex flex-col gap-6 sm:gap-8 w-full max-w-none font-sans selection:bg-emerald-500/30 selection:text-emerald-300">
+      {/* Clean Breadcrumb */}
       <div>
-        <Link 
+        <Link
           href="/dashboard"
-          className="inline-flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-300 transition-colors mb-3"
+          className="inline-flex items-center gap-2 text-xs font-bold text-neutral-400 hover:text-emerald-400 transition-colors w-fit group"
         >
-          <ArrowLeft className="h-3 w-3" />
-          Back to Dashboard
+          <ArrowLeft className="h-3.5 w-3.5 group-hover:-translate-x-1 transition-transform" />
+          <span>Back to Pro Dashboard</span>
         </Link>
-        <h2 className="text-2xl font-bold text-white tracking-tight">Add Record</h2>
-        <p className="text-xs text-neutral-500 mt-1">
-          Record a new trade transaction or log your daily profit and loss results
-        </p>
       </div>
 
-      {/* Forms Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Forms Grid Layout (2 Columns) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 items-start">
         <AddTradeForm />
         <AddDailyLogForm />
       </div>

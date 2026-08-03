@@ -65,7 +65,7 @@ export default async function DashboardLayout({
           fxRate={fxRate}
         />
 
-        <main className="flex-1 overflow-y-auto p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto no-scrollbar p-6 lg:p-8">
           {children}
         </main>
       </div>

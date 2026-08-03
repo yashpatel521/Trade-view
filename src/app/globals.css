@@ -20,20 +20,20 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom Scrollbars — minimal */
+/* Custom Scrollbars — hidden for ultra-clean UI */
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  display: none;
+  width: 0px;
+  height: 0px;
 }
-::-webkit-scrollbar-track {
-  background: transparent;
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
-::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 2px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #444;
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* Clean card surface */
