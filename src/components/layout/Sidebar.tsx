@@ -17,6 +17,7 @@ import {
   ChevronRight,
   Briefcase,
   Sparkles,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { TradeViewLogo } from '@/components/ui/TradeViewLogo';
 
@@ -79,6 +80,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
           label: 'Watchlist',
           icon: Bookmark,
           active: pathname === '/dashboard/watchlist',
+        },
+        {
+          href: '/dashboard/import',
+          label: 'Import CSV',
+          icon: FileSpreadsheet,
+          active: pathname === '/dashboard/import',
         },
       ],
     },

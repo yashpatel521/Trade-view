@@ -2068,6 +2068,258 @@ export async function searchStocksAction(query: string): Promise<StockSearchResu
   );
 }
 
+export interface CsvTradeImportRecord {
+  ticker: string;
+  type: 'BUY' | 'SELL';
+  shares: number;
+  price: number;
+  currency: 'USD' | 'CAD';
+  date: string;
+}
+
+export async function importPortfolioCsvAction(payload: {
+  records: CsvTradeImportRecord[];
+  resetPortfolio?: boolean;
+  initialCadCash?: number;
+  initialUsdCash?: number;
+}): Promise<{ success: boolean; count?: number; error?: string }> {
+  try {
+    const userId = await getUserIdOrThrow();
+    const { records, resetPortfolio, initialCadCash, initialUsdCash } = payload;
+
+    if (!records || !Array.isArray(records) || records.length === 0) {
+      return { success: false, error: 'No valid trade records found in CSV file.' };
+    }
+
+    const driver = (process.env.DATABASE_DRIVER || '').toLowerCase();
+    const targetUsers = driver === 'postgres' ? (postgresSchema.users as any) : (users as any);
+    const targetHoldings = driver === 'postgres' ? (postgresSchema.holdings as any) : (holdings as any);
+    const targetTrades = driver === 'postgres' ? (postgresSchema.trades as any) : (trades as any);
+
+    // Retrieve user account
+    const userRecords = await db
+      .select()
+      .from(targetUsers)
+      .where(eq(targetUsers.id, userId))
+      .limit(1);
+
+    const user = userRecords[0];
+    if (!user) {
+      return { success: false, error: 'User account not found.' };
+    }
+
+    const fxRate = await fetchFxRate();
+
+    // If resetPortfolio is selected, wipe existing trades & holdings for user
+    if (resetPortfolio) {
+      await db.delete(targetTrades).where(eq(targetTrades.userId, userId));
+      await db.delete(targetHoldings).where(eq(targetHoldings.userId, userId));
+
+      const freshCad = typeof initialCadCash === 'number' && !isNaN(initialCadCash) ? Math.max(0, initialCadCash) : 10000;
+      const freshUsd = typeof initialUsdCash === 'number' && !isNaN(initialUsdCash) ? Math.max(0, initialUsdCash) : 0;
+
+      await db.update(targetUsers)
+        .set({
+          cashBalanceCad: freshCad,
+          cashBalanceUsd: freshUsd,
+          cashBalance: freshCad + (freshUsd * fxRate),
+        })
+        .where(eq(targetUsers.id, userId));
+    }
+
+    let processedCount = 0;
+
+    for (const rec of records) {
+      const tickerUpper = (rec.ticker || '').toUpperCase().trim();
+      const type = (rec.type || 'BUY').toUpperCase() as 'BUY' | 'SELL';
+      const shares = Number(rec.shares);
+      const price = Number(rec.price);
+      const date = (rec.date || '').trim() || new Date().toISOString().split('T')[0];
+      const isCanadian = tickerUpper.endsWith('.TO') || tickerUpper.endsWith('.V') || tickerUpper.endsWith('.CN');
+      const currency: 'USD' | 'CAD' = rec.currency ? rec.currency.toUpperCase() as 'USD' | 'CAD' : (isCanadian ? 'CAD' : 'USD');
+
+      if (!tickerUpper || isNaN(shares) || shares <= 0 || isNaN(price) || price <= 0) {
+        continue; // Skip invalid records
+      }
+
+      // 1. Insert trade record
+      await db.insert(targetTrades).values({
+        userId,
+        ticker: tickerUpper,
+        type,
+        shares,
+        price,
+        date,
+      });
+
+      // 2. Retrieve latest user balances
+      const currentUserRecords = await db
+        .select()
+        .from(targetUsers)
+        .where(eq(targetUsers.id, userId))
+        .limit(1);
+
+      const currentUser = currentUserRecords[0];
+      let curCad = typeof currentUser?.cashBalanceCad === 'number' ? currentUser.cashBalanceCad : (currentUser?.cashBalance || 0);
+      let curUsd = typeof currentUser?.cashBalanceUsd === 'number' ? currentUser.cashBalanceUsd : 0;
+
+      const tradeTotal = shares * price;
+
+      if (currency === 'USD') {
+        curUsd = type === 'BUY' ? Math.max(0, curUsd - tradeTotal) : curUsd + tradeTotal;
+      } else {
+        curCad = type === 'BUY' ? Math.max(0, curCad - tradeTotal) : curCad + tradeTotal;
+      }
+
+      await db.update(targetUsers)
+        .set({
+          cashBalanceCad: curCad,
+          cashBalanceUsd: curUsd,
+          cashBalance: curCad + (curUsd * fxRate),
+        })
+        .where(eq(targetUsers.id, userId));
+
+      // 3. Update Holdings
+      const holdingRecords = await db
+        .select()
+        .from(targetHoldings)
+        .where(and(eq(targetHoldings.userId, userId), eq(targetHoldings.ticker, tickerUpper)))
+        .limit(1);
+
+      const existingHolding = holdingRecords[0];
+
+      if (type === 'BUY') {
+        if (existingHolding) {
+          const newShares = Number(existingHolding.shares) + shares;
+          const newAvgPrice = (Number(existingHolding.shares) * Number(existingHolding.averagePrice) + shares * price) / newShares;
+          await db.update(targetHoldings)
+            .set({
+              shares: newShares,
+              averagePrice: newAvgPrice,
+              updatedAt: new Date(),
+            })
+            .where(eq(targetHoldings.id, existingHolding.id));
+        } else {
+          await db.insert(targetHoldings).values({
+            userId,
+            ticker: tickerUpper,
+            shares,
+            averagePrice: price,
+          });
+        }
+      } else { // SELL
+        if (existingHolding) {
+          const newShares = Number(existingHolding.shares) - shares;
+          if (newShares <= 0.000001) {
+            await db.delete(targetHoldings).where(eq(targetHoldings.id, existingHolding.id));
+          } else {
+            await db.update(targetHoldings)
+              .set({
+                shares: newShares,
+                updatedAt: new Date(),
+              })
+              .where(eq(targetHoldings.id, existingHolding.id));
+          }
+        }
+      }
+
+      processedCount++;
+    }
+
+    // If resetPortfolio mode is selected, set user's cash balances directly to initial inputs
+    if (resetPortfolio) {
+      const finalCad = typeof initialCadCash === 'number' && !isNaN(initialCadCash) ? Math.max(0, initialCadCash) : 10000;
+      const finalUsd = typeof initialUsdCash === 'number' && !isNaN(initialUsdCash) ? Math.max(0, initialUsdCash) : 0;
+
+      await db.update(targetUsers)
+        .set({
+          cashBalanceCad: finalCad,
+          cashBalanceUsd: finalUsd,
+          cashBalance: finalCad + (finalUsd * fxRate),
+        })
+        .where(eq(targetUsers.id, userId));
+    }
+
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard/stocks');
+    revalidatePath('/dashboard/journal');
+    revalidatePath('/dashboard/watchlist');
+    revalidatePath('/dashboard/import');
+
+    return {
+      success: true,
+      count: processedCount,
+    };
+  } catch (err: any) {
+    console.error('Error importing portfolio CSV:', err);
+    return { success: false, error: err?.message || 'Failed to import portfolio CSV records.' };
+  }
+}
+
+export async function getCurrentUserRoleAction(): Promise<{ role: 'admin' | 'user'; isAdmin: boolean }> {
+  try {
+    const session = await getSession();
+    const role = session?.role === 'admin' ? 'admin' : 'user';
+    return { role, isAdmin: role === 'admin' };
+  } catch {
+    return { role: 'user', isAdmin: false };
+  }
+}
+
+export async function resetUserDataAction(): Promise<{ success: boolean; error?: string }> {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return { success: false, error: 'Unauthorized session. Please log in.' };
+    }
+
+    if (session.role !== 'admin') {
+      return { success: false, error: 'Access denied. Only Administrator accounts can reset user portfolio data.' };
+    }
+
+    const userId = Number(session.userId);
+    const driver = (process.env.DATABASE_DRIVER || '').toLowerCase();
+    const targetUsers = driver === 'postgres' ? (postgresSchema.users as any) : (users as any);
+    const targetHoldings = driver === 'postgres' ? (postgresSchema.holdings as any) : (holdings as any);
+    const targetTrades = driver === 'postgres' ? (postgresSchema.trades as any) : (trades as any);
+    const targetDailyLogs = driver === 'postgres' ? (postgresSchema.dailyLogs as any) : (dailyLogs as any);
+
+    // 1. Clear trade history
+    await db.delete(targetTrades).where(eq(targetTrades.userId, userId));
+
+    // 2. Clear holdings
+    await db.delete(targetHoldings).where(eq(targetHoldings.userId, userId));
+
+    // 3. Clear daily P&L logs
+    await db.delete(targetDailyLogs).where(eq(targetDailyLogs.userId, userId));
+
+    // 4. Reset cash balances to 0 CAD / 0 USD
+    const defaultCad = 0;
+    const defaultUsd = 0;
+
+    await db.update(targetUsers)
+      .set({
+        cashBalanceCad: defaultCad,
+        cashBalanceUsd: defaultUsd,
+        cashBalance: 0,
+      })
+      .where(eq(targetUsers.id, userId));
+
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard/stocks');
+    revalidatePath('/dashboard/journal');
+    revalidatePath('/dashboard/settings');
+    revalidatePath('/dashboard/watchlist');
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('Error resetting user data:', err);
+    return { success: false, error: err?.message || 'Failed to reset user portfolio data.' };
+  }
+}
+
+
+
 
 
 
