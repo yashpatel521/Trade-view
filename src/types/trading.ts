@@ -175,3 +175,35 @@ export interface StockSearchResult {
   description: string;
   type: string;
 }
+
+export interface DividendHolding {
+  ticker: string;
+  shares: number;
+  currentPrice: number;
+  currency: 'USD' | 'CAD';
+  annualDividendPerShare: number;
+  dividendYield: number; // percentage e.g. 3.45
+  payoutFrequency: 'Monthly' | 'Quarterly' | 'Annual';
+  exDividendDate: string;
+  estimatedAnnualIncome: number;
+  estimatedMonthlyIncome: number;
+}
+
+export interface MonthlyDividendDistribution {
+  month: string;
+  amountCad: number;
+  amountUsd: number;
+}
+
+export interface DividendTrackerData {
+  annualIncomeCad: number;
+  annualIncomeUsd: number;
+  monthlyIncomeCad: number;
+  monthlyIncomeUsd: number;
+  weightedYieldPercent: number;
+  upcomingExDate?: { ticker: string; date: string; daysLeft: number } | null;
+  monthlyDistributions: MonthlyDividendDistribution[];
+  holdings: DividendHolding[];
+  fxRate: number;
+}
+

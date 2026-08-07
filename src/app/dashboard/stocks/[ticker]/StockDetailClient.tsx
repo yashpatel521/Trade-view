@@ -56,7 +56,7 @@ export default function StockDetailClient({
   const handleToggleWatchlist = async () => {
     setIsTogglingWatchlist(true);
     const res = await toggleWatchlistAction(tickerUpper);
-    setIsPinned(res.inWatchlist);
+    setIsPinned(Boolean(res.inWatchlist || res.isWatchlisted));
     setIsTogglingWatchlist(false);
   };
 

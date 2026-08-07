@@ -287,12 +287,12 @@ export default function ImportCsvClient() {
         date: r.date,
       }));
 
-      const res = await importPortfolioCsvAction({
-        records: payloadRecords,
-        resetPortfolio: mode === 'RESET',
-        initialCadCash: parseFloat(initialCad) || 10000,
-        initialUsdCash: parseFloat(initialUsd) || 0,
-      });
+      const res = await importPortfolioCsvAction(
+        payloadRecords,
+        mode === 'RESET',
+        parseFloat(initialCad) || 10000,
+        parseFloat(initialUsd) || 0
+      );
 
       if (res.success) {
         setImportStatus({

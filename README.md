@@ -21,6 +21,10 @@ Designed with a premium Wealthsimple-inspired dark gray aesthetic (`#0a0a0a`), t
   - **Real-Time Live Price Anchoring**: Fetches live market quotes for scanned tickers (`NVDA`, `AAPL`, `TSLA`, `RY.TO`, etc.) and anchors day/week target prices down to the cent.
   - **In-Table Interactive Loading**: Clicking **Run Scan** renders animated pulsing skeleton rows directly inside the table body (`<tbody>`) with multi-step status feedback.
   - **1-Click Watchlist Action Column**: Interactive `Bookmark` button on every stock row for 1-click pinning/unpinning to your watchlist.
+- **🎯 Portfolio Dividend Tracker & Income Calendar (`/dashboard/dividends`)**:
+  - Calculates estimated annual dividend income, monthly average cash flow, and weighted portfolio dividend yield %.
+  - 12-Month Projected Income Recharts bar graph visualizing expected monthly distributions (Jan - Dec) across CAD & USD holdings.
+  - Interactive Holdings Dividend Ledger listing ticker, shares, price, annual div/share, yield %, payout frequency (`Monthly`/`Quarterly`), and ex-dividend target dates.
 - **🖼️ Multi-Tier Stock Logo Engine (`StockLogo.tsx`)**:
   - 4-tier image fetching fallback pipeline: Tier 1 Parqet Symbol PNG, Tier 2 Financial Modeling Prep, Tier 3 Clearbit Favicon, and Tier 4 Dynamic HSL gradient SVG badge.
 - **🗄️ Native Multi-Database Architecture**: Supports **SQLite** (LibSQL / Turso) and **PostgreSQL** (Supabase / Neon / Vercel Postgres / Railway) dynamically configured via `DATABASE_DRIVER` (`sqlite` | `postgres`) and `DATABASE_URL` in `.env`.

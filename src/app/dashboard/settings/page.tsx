@@ -328,7 +328,7 @@ export default function SettingsPage() {
                   Reset Balance &amp; Wipe Trades, Holdings, and Journal Logs
                 </span>
                 <p className="text-[11px] text-neutral-400 leading-relaxed font-medium">
-                  This action will permanently delete all trade records, stock holdings, and P&amp;L daily journal logs from the database, and reset cash balance back to <strong className="text-emerald-400">$0.00 CAD</strong>.
+                  This action will permanently delete all trade records, stock holdings, and P&amp;L daily journal logs from the database <strong className="text-white">for your account only</strong>, and reset cash balance back to <strong className="text-emerald-400">$0.00 CAD</strong>.
                 </p>
               </div>
 

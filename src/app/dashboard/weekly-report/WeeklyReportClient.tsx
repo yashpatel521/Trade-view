@@ -92,9 +92,11 @@ export default function WeeklyReportClient({
     }, 1800);
 
     try {
-      const { report: newReport, createdAt } = await generateNewWeeklyReportAction();
-      setReport(newReport);
-      setLastScanned(createdAt);
+      const res = await generateNewWeeklyReportAction();
+      if (res?.report) {
+        setReport(res.report);
+        setLastScanned(new Date().toLocaleString());
+      }
     } catch (err) {
       console.error('Failed to execute Gemini AI market scan:', err);
     } finally {

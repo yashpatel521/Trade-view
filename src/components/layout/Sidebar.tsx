@@ -18,6 +18,7 @@ import {
   Briefcase,
   Sparkles,
   FileSpreadsheet,
+  Coins,
 } from 'lucide-react';
 import { TradeViewLogo } from '@/components/ui/TradeViewLogo';
 
@@ -36,21 +37,24 @@ interface NavGroup {
   }[];
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
+export function Sidebar({ isAdmin = false }: SidebarProps) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem('sidebar_collapsed');
-    if (saved !== null) {
-      setIsCollapsed(saved === 'true');
-    }
+    const handleResize = () => {
+      if (window.innerWidth < 1024) {
+        setIsCollapsed(true);
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const toggleCollapse = () => {
-    const next = !isCollapsed;
-    setIsCollapsed(next);
-    localStorage.setItem('sidebar_collapsed', String(next));
+    setIsCollapsed(!isCollapsed);
   };
 
   const navGroups: NavGroup[] = [
@@ -59,7 +63,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
       items: [
         {
           href: '/dashboard',
-          label: 'Dashboard',
+          label: 'Overview',
           icon: LayoutDashboard,
           active: pathname === '/dashboard',
         },
@@ -80,6 +84,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
           label: 'Watchlist',
           icon: Bookmark,
           active: pathname === '/dashboard/watchlist',
+        },
+        {
+          href: '/dashboard/dividends',
+          label: 'Dividend Tracker',
+          icon: Coins,
+          active: pathname === '/dashboard/dividends',
         },
         {
           href: '/dashboard/import',
